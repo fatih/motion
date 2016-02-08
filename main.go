@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/fatih/motion/astcontext"
 )
 
 var src = `package main
@@ -25,7 +27,7 @@ func main() {
 }
 
 func realMain() error {
-	funcs, err := NewFuncs([]byte(src))
+	funcs, err := astcontext.NewFuncs([]byte(src))
 	if err != nil {
 		return err
 	}
