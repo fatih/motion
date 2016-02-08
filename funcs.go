@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -21,9 +22,9 @@ func (f Func) String() string {
 	return fmt.Sprintf("%s (%T)", f.funcPos, f.node)
 }
 
-// NewFuncs returns a list of Func's from the given src
+// NewFuncs returns a list of Func's from the given src. The list of Func's are
+// sorted according to the order of Go functions in the given src.
 func NewFuncs(src []byte) ([]Func, error) {
-	// Create the AST by parsing src.
 	fset := token.NewFileSet() // positions are relative to fset
 	f, err := parser.ParseFile(fset, "src.go", src, 0)
 	if err != nil {
@@ -32,25 +33,41 @@ func NewFuncs(src []byte) ([]Func, error) {
 
 	var funcs []Func
 
-	addFunc := func(node ast.Node, fnType *ast.FuncType) {
-		funcs = append(funcs, Func{
-			lbrace:  fset.Position(node.Pos()),
-			rbrace:  fset.Position(node.End()),
-			funcPos: fset.Position(fnType.Func),
-			node:    node,
-		})
-	}
-
-	// Inspect the AST and print all identifiers and literals.
+	// Inspect the AST and find all function declarements and literals
 	ast.Inspect(f, func(n ast.Node) bool {
 		switch x := n.(type) {
 		case *ast.FuncDecl:
-			addFunc(x, x.Type)
+			funcs = append(funcs, Func{
+				lbrace:  fset.Position(x.Body.Lbrace),
+				rbrace:  fset.Position(x.Body.Rbrace),
+				funcPos: fset.Position(x.Type.Func),
+				node:    x,
+			})
 		case *ast.FuncLit:
-			addFunc(x, x.Type)
+			funcs = append(funcs, Func{
+				lbrace:  fset.Position(x.Body.Lbrace),
+				rbrace:  fset.Position(x.Body.Rbrace),
+				funcPos: fset.Position(x.Type.Func),
+				node:    x,
+			})
 		}
-
 		return true
 	})
+
 	return funcs, nil
+}
+
+// enclosingFunc returns the enclosing function for the given offset. An error
+// is return if no enclosing function is found.
+func enclosingFunc(funcs []Func, offset int) (Func, error) {
+	for _, fn := range funcs {
+		start := fn.lbrace.Offset
+		end := fn.rbrace.Offset
+
+		if start <= offset && offset <= end {
+			return fn, nil
+		}
+	}
+
+	return Func{}, errors.New("offset is not enclosing any function")
 }

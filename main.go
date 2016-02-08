@@ -30,8 +30,11 @@ func realMain() error {
 		return err
 	}
 
-	for _, fn := range funcs {
-		fmt.Println(fn)
+	fn, err := enclosingFunc(funcs, 97)
+	if err != nil {
+		return err
 	}
+
+	fmt.Printf("fn = %+v\n", fn)
 	return nil
 }
