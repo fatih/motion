@@ -18,12 +18,12 @@ var (
 	formatFlag = flag.String("format", "plain", "Output format. One of {plain, json, xml}")
 
 	// not enabled
-	modeFlag = flag.String("mode", "", "type of the query mode. One of {func}")
+	// modeFlag = flag.String("mode", "", "type of the query mode. One of {func}")
 )
 
 func main() {
 	if err := realMain(); err != nil {
-		fmt.Fprintf(os.Stderr, "motion: %s\n", err.Error())
+		fmt.Fprint(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 }
@@ -63,16 +63,14 @@ func realMain() error {
 			return fmt.Errorf("JSON error: %s\n", err)
 		}
 		os.Stdout.Write(b)
-
 	case "xml":
 		b, err := xml.MarshalIndent(&fn, "", "\t")
 		if err != nil {
 			return fmt.Errorf("XML error: %s\n", err)
 		}
 		os.Stdout.Write(b)
-
 	case "plain":
-		fmt.Println(fn)
+		fmt.Print(fn)
 	}
 
 	return nil
