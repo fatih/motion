@@ -32,11 +32,11 @@ func foo() error {
 	}
 
 	for _, pos := range testPos {
-		fn := EnclosingFunc([]byte(src), pos.offset)
+		fn, _ := EnclosingFunc([]byte(src), pos.offset)
 
-		if fn.lbrace.Offset != pos.lbraceOffset {
+		if fn.Lbrace.Offset != pos.lbraceOffset {
 			t.Errorf("offset %d should belong to func with offset: %d, got: %d",
-				pos.offset, pos.lbraceOffset, fn.lbrace.Offset)
+				pos.offset, pos.lbraceOffset, fn.Lbrace.Offset)
 		}
 	}
 }
