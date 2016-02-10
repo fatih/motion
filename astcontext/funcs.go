@@ -23,7 +23,6 @@ type Func struct {
 func (f *Func) String() string {
 	return fmt.Sprintf("{'func': {'line': '%d', 'col':'%d'}, 'lbrace': {'line': '%d', 'col':'%d'}, 'rbrace': {'line': '%d', 'col':'%d'}}",
 		f.FuncPos.Line, f.FuncPos.Column, f.Lbrace.Line, f.Lbrace.Column, f.Rbrace.Line, f.Rbrace.Column)
-
 }
 
 // EnclosingFunc returns the enclosing Func for the given offset from the src.
