@@ -1,6 +1,9 @@
 package astcontext
 
-import "testing"
+import (
+	"log"
+	"testing"
+)
 
 func TestEnclosingFunc(t *testing.T) {
 	var src = `package main
@@ -16,27 +19,28 @@ func foo() error {
 `
 
 	testPos := []struct {
-		offset       int
-		lbraceOffset int
+		offset     int
+		funcOffset int
 	}{
-		{30, 0},
-		{31, 31}, // var bar = func {}
-		{32, 31}, // var bar = func {}
-		{52, 52}, // func foo() error {
-		{53, 52}, // func foo() error {
-		{67, 66}, // _ = func() {
-		{70, 66}, // _ = func() {
-		{85, 52}, // func foo() error {
-		{96, 52}, // func foo() error {
+		{23, 0}, // var bar = func {}
+		{25, 24},
+		{32, 24}, // var bar = func {}
+		{35, 35}, // func foo() error {
+		{53, 35}, // func foo() error {
+		{67, 59}, // _ = func() {
+		{70, 59}, // _ = func() {
+		{85, 35}, // func foo() error {
+		{96, 35}, // func foo() error {
 		{97, 0},
 	}
 
 	for _, pos := range testPos {
 		fn, _ := EnclosingFunc([]byte(src), pos.offset)
+		log.Println("fn", fn.FuncPos.Offset)
 
-		if fn.Lbrace.Offset != pos.lbraceOffset {
+		if fn.FuncPos.Offset != pos.funcOffset {
 			t.Errorf("offset %d should belong to func with offset: %d, got: %d",
-				pos.offset, pos.lbraceOffset, fn.Lbrace.Offset)
+				pos.offset, pos.funcOffset, fn.FuncPos.Offset)
 		}
 	}
 }

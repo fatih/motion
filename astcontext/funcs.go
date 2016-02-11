@@ -101,7 +101,7 @@ func parseFuncs(fset *token.FileSet, f ast.Node) []*Func {
 func enclosingFunc(funcs []*Func, offset int) (*Func, error) {
 	var encFunc *Func
 	for _, fn := range funcs {
-		start := fn.Lbrace.Offset
+		start := fn.FuncPos.Offset
 		end := fn.Rbrace.Offset
 		if start <= offset && offset <= end {
 			encFunc = fn
