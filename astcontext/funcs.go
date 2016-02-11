@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
-	"go/parser"
 	"go/token"
 )
 
@@ -16,19 +15,28 @@ type Func struct {
 	FuncPos token.Position `json:"funcPos"` // position of the "func" keyword
 	Lbrace  token.Position `json:"lbrace"`  // position of "{"
 	Rbrace  token.Position `json:"rbrace"`  // position of "}"
+	Doc     token.Position `json:"docPos"`  // position of the doc comment, only for *ast.FuncDecl
 
 	node ast.Node // either *ast.FuncDecl or *ast.FuncLit
 }
 
 func (f *Func) String() string {
+	if f.Doc.IsValid() {
+		return fmt.Sprintf("{'func': {'line': '%d', 'col':'%d'}, 'doc': {'line': '%d', 'col':'%d'}, 'lbrace': {'line': '%d', 'col':'%d'}, 'rbrace': {'line': '%d', 'col':'%d'}}",
+			f.FuncPos.Line, f.FuncPos.Column,
+			f.Doc.Line, f.Doc.Column,
+			f.Lbrace.Line, f.Lbrace.Column,
+			f.Rbrace.Line, f.Rbrace.Column,
+		)
+	}
+
 	return fmt.Sprintf("{'func': {'line': '%d', 'col':'%d'}, 'lbrace': {'line': '%d', 'col':'%d'}, 'rbrace': {'line': '%d', 'col':'%d'}}",
 		f.FuncPos.Line, f.FuncPos.Column, f.Lbrace.Line, f.Lbrace.Column, f.Rbrace.Line, f.Rbrace.Column)
 }
 
-// EnclosingFunc returns the enclosing Func for the given offset from the src.
-// Src needs to be a valid Go source file content.
-func EnclosingFunc(src []byte, offset int) (*Func, error) {
-	funcs, err := ParseFuncs(src)
+// EnclosingFunc returns the enclosing *Func for the given offset
+func (p *Parser) EnclosingFunc(offset int) (*Func, error) {
+	funcs, err := p.Funcs()
 	if err != nil {
 		return nil, err
 	}
@@ -36,39 +44,14 @@ func EnclosingFunc(src []byte, offset int) (*Func, error) {
 	return enclosingFunc(funcs, offset)
 }
 
-// EnclosingFuncFile returns the enclosing *Func for the given offset from the
-// filename. File needs to be a valid Go source file.
-func EnclosingFuncFile(filename string, offset int) (*Func, error) {
-	funcs, err := ParseFuncsFile(filename)
-	if err != nil {
-		return nil, err
+// Funcs returns a list of Func's from the parsed source.  Func's are sorted
+// according to the order of Go functions in the given source.
+func (p *Parser) Funcs() ([]*Func, error) {
+	if p.err != nil {
+		return nil, p.err
 	}
 
-	return enclosingFunc(funcs, offset)
-}
-
-// ParseFuncsFile returns a list of Func's from the given filename. The list of
-// Func's are sorted according to the order of Go functions in the given
-// filename.
-func ParseFuncsFile(filename string) ([]*Func, error) {
-	fset := token.NewFileSet() // positions are relative to fset
-	f, err := parser.ParseFile(fset, filename, nil, 0)
-	if err != nil {
-		return nil, err
-	}
-	return parseFuncs(fset, f), nil
-}
-
-// ParseFuncs returns a list of Func's from the given src. The list of Func's
-// are sorted according to the order of Go functions in the given src.
-func ParseFuncs(src []byte) ([]*Func, error) {
-	fset := token.NewFileSet() // positions are relative to fset
-	f, err := parser.ParseFile(fset, "src.go", src, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	return parseFuncs(fset, f), nil
+	return parseFuncs(p.fset, p.file), nil
 }
 
 func parseFuncs(fset *token.FileSet, f ast.Node) []*Func {
@@ -78,12 +61,18 @@ func parseFuncs(fset *token.FileSet, f ast.Node) []*Func {
 	ast.Inspect(f, func(n ast.Node) bool {
 		switch x := n.(type) {
 		case *ast.FuncDecl:
-			funcs = append(funcs, &Func{
+			fn := &Func{
 				Lbrace:  fset.Position(x.Body.Lbrace),
 				Rbrace:  fset.Position(x.Body.Rbrace),
 				FuncPos: fset.Position(x.Type.Func),
 				node:    x,
-			})
+			}
+
+			if x.Doc != nil {
+				fn.Doc = fset.Position(x.Doc.Pos())
+			}
+
+			funcs = append(funcs, fn)
 		case *ast.FuncLit:
 			funcs = append(funcs, &Func{
 				Lbrace:  fset.Position(x.Body.Lbrace),
@@ -102,7 +91,12 @@ func enclosingFunc(funcs []*Func, offset int) (*Func, error) {
 	var encFunc *Func
 	for _, fn := range funcs {
 		start := fn.FuncPos.Offset
+		if fn.Doc.IsValid() {
+			start = fn.Doc.Offset
+		}
+
 		end := fn.Rbrace.Offset
+
 		if start <= offset && offset <= end {
 			encFunc = fn
 		}

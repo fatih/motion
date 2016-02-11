@@ -44,7 +44,7 @@ func realMain() error {
 		return err
 	}
 
-	fn, err := astcontext.EnclosingFuncFile(*fileFlag, offset)
+	fn, err := astcontext.NewParser(nil).ParseFile(*fileFlag).EnclosingFunc(offset)
 	if err != nil {
 		return err
 	}

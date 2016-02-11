@@ -1,9 +1,6 @@
 package astcontext
 
-import (
-	"log"
-	"testing"
-)
+import "testing"
 
 func TestEnclosingFunc(t *testing.T) {
 	var src = `package main
@@ -36,7 +33,6 @@ func foo() error {
 
 	for _, pos := range testPos {
 		fn, _ := EnclosingFunc([]byte(src), pos.offset)
-		log.Println("fn", fn.FuncPos.Offset)
 
 		if fn.FuncPos.Offset != pos.funcOffset {
 			t.Errorf("offset %d should belong to func with offset: %d, got: %d",
