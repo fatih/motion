@@ -13,12 +13,10 @@ import (
 )
 
 var (
-	fileFlag   = flag.String("file", "", "Filename to be parsed")
-	offsetFlag = flag.String("offset", "", "Byte offset of the cursor position")
-	formatFlag = flag.String("format", "plain", "Output format. One of {plain, json, xml}")
-
-	// not enabled
-	// modeFlag = flag.String("mode", "", "type of the query mode. One of {func}")
+	fileFlag      = flag.String("file", "", "Filename to be parsed")
+	offsetFlag    = flag.String("offset", "", "Byte offset of the cursor position")
+	formatFlag    = flag.String("format", "plain", "Output format. One of {plain, json, xml}")
+	pCommentsFlag = flag.Bool("parse-comments", true, "Parse comments and add them to AST")
 )
 
 func main() {
@@ -44,7 +42,15 @@ func realMain() error {
 		return err
 	}
 
-	fn, err := astcontext.NewParser(nil).ParseFile(*fileFlag).EnclosingFunc(offset)
+	opts := &astcontext.ParserOptions{
+		ParseComments: *pCommentsFlag,
+	}
+
+	fn, err := astcontext.
+		NewParser().
+		SetOptions(opts).
+		ParseFile(*fileFlag).
+		EnclosingFunc(offset)
 	if err != nil {
 		return err
 	}
