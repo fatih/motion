@@ -4,12 +4,11 @@ import (
 	"fmt"
 )
 
-var a = func() {
-	fmt.Println("tokyo")
-}
+var a = func() { fmt.Println("tokyo") }
 
 func main() {
 	fmt.Printf("Hello, world\n")
+	a()
 }
 
 // Bar is something else

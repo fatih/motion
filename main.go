@@ -10,12 +10,13 @@ import (
 	"strconv"
 
 	"github.com/fatih/motion/astcontext"
+	"github.com/fatih/motion/vim"
 )
 
 var (
 	flagFile          = flag.String("file", "", "Filename to be parsed")
 	flagOffset        = flag.String("offset", "", "Byte offset of the cursor position")
-	flagFormat        = flag.String("format", "plain", "Output format. One of {plain, json, xml}")
+	flagFormat        = flag.String("format", "plain", "Output format. One of {plain, json, xml, vim}")
 	flagParseComments = flag.Bool("parse-comments", true, "Parse comments and add them to AST")
 )
 
@@ -56,7 +57,7 @@ func realMain() error {
 	}
 
 	switch *flagFormat {
-	case "json", "plain", "xml":
+	case "json", "plain", "xml", "vim":
 	default:
 		return fmt.Errorf("wrong -format value: %q.\n", *flagFormat)
 	}
@@ -71,6 +72,12 @@ func realMain() error {
 		os.Stdout.Write(b)
 	case "xml":
 		b, err := xml.MarshalIndent(&fn, "", "\t")
+		if err != nil {
+			return fmt.Errorf("XML error: %s\n", err)
+		}
+		os.Stdout.Write(b)
+	case "vim":
+		b, err := vim.Marshal(&fn)
 		if err != nil {
 			return fmt.Errorf("XML error: %s\n", err)
 		}
