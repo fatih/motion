@@ -102,6 +102,10 @@ func parseFuncs(fset *token.FileSet, f ast.Node) []*Func {
 
 func enclosingFunc(funcs []*Func, offset int) (*Func, error) {
 	var encFunc *Func
+
+	// TODO(arslan) this is iterating over all functions. Benchmark it and see
+	// if it's worth it to change it with a more effiecent search function. For
+	// now this is enough for us.
 	for _, fn := range funcs {
 		start := fn.FuncPos.Offset
 		if fn.Doc != nil && fn.Doc.IsValid() {
