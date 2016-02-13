@@ -105,7 +105,11 @@ func enclosingFunc(funcs []*Func, offset int) (*Func, error) {
 	for _, fn := range funcs {
 		start := fn.FuncPos.Offset
 		if fn.Doc != nil && fn.Doc.IsValid() {
+			// has a doc, also include it
 			start = fn.Doc.Offset
+		} else if fn.FuncPos.Line == fn.Rbrace.Line {
+			// one liner, start from the beginning to make it easier
+			start = fn.FuncPos.Offset - fn.FuncPos.Column
 		}
 
 		end := fn.Rbrace.Offset
