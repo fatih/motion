@@ -4,10 +4,8 @@ import (
 	"fmt"
 )
 
-type T struct{}
-
-type X struct {
-	name string
+var a = func() {
+	fmt.Println("tokyo")
 }
 
 func main() {
@@ -19,8 +17,8 @@ func Bar() (string, error) {
 	return "vim-go", nil
 }
 
-// and this is a multi comment doc. I think docs are really different kind of
-// thins
+// and this is a multi comment doc. I think docs are
+// really different kind of things, bla bla
 func foo() error {
 	a := func() {
 		fmt.Println("zeynep")

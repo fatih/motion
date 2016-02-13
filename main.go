@@ -13,10 +13,10 @@ import (
 )
 
 var (
-	fileFlag      = flag.String("file", "", "Filename to be parsed")
-	offsetFlag    = flag.String("offset", "", "Byte offset of the cursor position")
-	formatFlag    = flag.String("format", "plain", "Output format. One of {plain, json, xml}")
-	pCommentsFlag = flag.Bool("parse-comments", true, "Parse comments and add them to AST")
+	flagFile          = flag.String("file", "", "Filename to be parsed")
+	flagOffset        = flag.String("offset", "", "Byte offset of the cursor position")
+	flagFormat        = flag.String("format", "plain", "Output format. One of {plain, json, xml}")
+	flagParseComments = flag.Bool("parse-comments", true, "Parse comments and add them to AST")
 )
 
 func main() {
@@ -29,40 +29,40 @@ func main() {
 func realMain() error {
 	flag.Parse()
 
-	if *offsetFlag == "" {
+	if *flagOffset == "" {
 		return errors.New("no offset is passed")
 	}
 
-	if *fileFlag == "" {
+	if *flagFile == "" {
 		return errors.New("no file is passed")
 	}
 
-	offset, err := strconv.Atoi(*offsetFlag)
+	offset, err := strconv.Atoi(*flagOffset)
 	if err != nil {
 		return err
 	}
 
 	opts := &astcontext.ParserOptions{
-		ParseComments: *pCommentsFlag,
+		ParseComments: *flagParseComments,
 	}
 
 	fn, err := astcontext.
 		NewParser().
 		SetOptions(opts).
-		ParseFile(*fileFlag).
+		ParseFile(*flagFile).
 		EnclosingFunc(offset)
 	if err != nil {
 		return err
 	}
 
-	switch *formatFlag {
+	switch *flagFormat {
 	case "json", "plain", "xml":
 	default:
-		return fmt.Errorf("wrong -format value: %q.\n", *formatFlag)
+		return fmt.Errorf("wrong -format value: %q.\n", *flagFormat)
 	}
 
 	// Print the result.
-	switch *formatFlag {
+	switch *flagFormat {
 	case "json":
 		b, err := json.MarshalIndent(&fn, "", "\t")
 		if err != nil {
