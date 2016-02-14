@@ -22,9 +22,6 @@ type Parser struct {
 
 	// opts contains the parser options
 	opts *ParserOptions
-
-	// err includes any intermediate error
-	err error
 }
 
 // NewParser creates a new Parser reference
@@ -45,7 +42,7 @@ func (p *Parser) SetOptions(opts *ParserOptions) *Parser {
 }
 
 // ParseFile parses the given filename
-func (p *Parser) ParseFile(filename string) *Parser {
+func (p *Parser) ParseFile(filename string) (*Parser, error) {
 	var mode parser.Mode
 	if p.opts != nil && p.opts.ParseComments {
 		mode = parser.ParseComments
@@ -53,15 +50,15 @@ func (p *Parser) ParseFile(filename string) *Parser {
 
 	f, err := parser.ParseFile(p.fset, filename, nil, mode)
 	if err != nil {
-		p.err = err
-		return p
+		return nil, err
 	}
+
 	p.file = f
-	return p
+	return p, nil
 }
 
 // ParseSrc parses the given Go source code
-func (p *Parser) ParseSrc(src []byte) *Parser {
+func (p *Parser) ParseSrc(src []byte) (*Parser, error) {
 	var mode parser.Mode
 	if p.opts != nil && p.opts.ParseComments {
 		mode = parser.ParseComments
@@ -69,9 +66,8 @@ func (p *Parser) ParseSrc(src []byte) *Parser {
 
 	f, err := parser.ParseFile(p.fset, "src.go", src, mode)
 	if err != nil {
-		p.err = err
-		return p
+		return nil, err
 	}
 	p.file = f
-	return p
+	return p, nil
 }
