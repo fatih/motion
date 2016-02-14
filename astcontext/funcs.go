@@ -121,19 +121,6 @@ func (f Funcs) EnclosingFunc(offset int) (*Func, error) {
 	return encFunc, nil
 }
 
-// // NextFunc returns the nearest next Func for the given offset.
-// func (f Funcs) NextFunc(offset int) (*Func, error) {
-// 	// find nearest next function
-// 	nextIndex := sort.Search(len(f), func(i int) bool {
-// 		return f[i].FuncPos.Offset > offset
-// 	})
-
-// 	if nextIndex == len(f) {
-// 		return nil, errors.New("no functions found")
-// 	}
-// 	return f[nextIndex], nil
-// }
-
 // NextFunc returns the nearest next Func for the given offset.
 func (f Funcs) NextFunc(offset int) (*Func, error) {
 	return f.nextFuncShift(offset, 0)
