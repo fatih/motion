@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"encoding/xml"
 	"errors"
 	"flag"
 	"fmt"
@@ -17,7 +16,7 @@ var (
 	flagFile   = flag.String("file", "", "Filename to be parsed")
 	flagOffset = flag.String("offset", "", "Byte offset of the cursor position")
 	flagFormat = flag.String("format", "plain",
-		"Output format. One of {plain, json, xml, vim}")
+		"Output format. One of {plain, json, vim}")
 	flagParseComments = flag.Bool("parse-comments", false,
 		"Parse comments and add them to AST")
 	flagMode = flag.String("mode", "", "Running mode. One of {enclosing, next, prev}")
@@ -69,38 +68,38 @@ func realMain() error {
 		return fmt.Errorf("wrong mode %q passed", *flagMode)
 	}
 
+	var res interface{} = fn
+
+	// do no return, instead pass it to the editor so it can parse it
 	if err != nil {
-		return err
+		res = struct {
+			Err string `json:"err" vim:"err"`
+		}{
+			Err: err.Error(),
+		}
 	}
 
 	switch *flagFormat {
-	case "json", "plain", "xml", "vim":
+	case "json", "plain", "vim":
 	default:
 		return fmt.Errorf("wrong -format value: %q.\n", *flagFormat)
 	}
 
-	// Print the result.
 	switch *flagFormat {
 	case "json":
-		b, err := json.MarshalIndent(&fn, "", "\t")
+		b, err := json.MarshalIndent(&res, "", "\t")
 		if err != nil {
 			return fmt.Errorf("JSON error: %s\n", err)
 		}
 		os.Stdout.Write(b)
-	case "xml":
-		b, err := xml.MarshalIndent(&fn, "", "\t")
-		if err != nil {
-			return fmt.Errorf("XML error: %s\n", err)
-		}
-		os.Stdout.Write(b)
 	case "vim":
-		b, err := vim.Marshal(&fn)
+		b, err := vim.Marshal(&res)
 		if err != nil {
-			return fmt.Errorf("XML error: %s\n", err)
+			return fmt.Errorf("VIM error: %s\n", err)
 		}
 		os.Stdout.Write(b)
 	case "plain":
-		fmt.Print(fn)
+		fmt.Print(res)
 	}
 
 	return nil
