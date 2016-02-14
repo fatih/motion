@@ -6,16 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
-	"go/token"
 	"sort"
 )
-
-// Position describes a function position
-type Position struct {
-	Offset int `json:"offset" vim:"offset"` // offset, starting at 0
-	Line   int `json:"line" vim:"line"`     // line number, starting at 1
-	Column int `json:"col" vim:"col"`       // column number, starting at 1 (byte count)
-}
 
 // Func represents a declared (*ast.FuncDecl) or an anonymous (*ast.FuncLit) Go
 // function
@@ -27,20 +19,25 @@ type Func struct {
 	// position of the doc comment, only for *ast.FuncDecl
 	Doc *Position `json:"doc,omitempty" vim:"doc,omitempty"`
 
-	node    ast.Node // either *ast.FuncDecl or *ast.FuncLit
-	literal bool     // literal function or not
+	node ast.Node // either *ast.FuncDecl or *ast.FuncLit
 }
 
-// ToPosition returns a Position from the given token.Position
-func ToPosition(pos token.Position) *Position {
-	return &Position{
-		Offset: pos.Offset,
-		Line:   pos.Line,
-		Column: pos.Column,
-	}
+// Funcs represents a list of functions
+type Funcs []*Func
+
+// IsDeclaration returns true if the given function is a function declaration
+// (*ast.FuncDecl)
+func (f *Func) IsDeclaration() bool {
+	_, ok := f.node.(*ast.FuncDecl)
+	return ok
 }
 
-func (pos Position) IsValid() bool { return pos.Line > 0 }
+// IsLiteral returns true if the given function is a function literal
+// (*ast.FuncLit)
+func (f *Func) IsLiteral() bool {
+	_, ok := f.node.(*ast.FuncLit)
+	return ok
+}
 
 func (f *Func) String() string {
 	switch x := f.node.(type) {
@@ -53,56 +50,33 @@ func (f *Func) String() string {
 	}
 }
 
-// EnclosingFunc returns the enclosing *Func for the given offset
-func (p *Parser) EnclosingFunc(offset int) (*Func, error) {
-	funcs := p.Funcs()
-	return enclosingFunc(funcs, offset)
-}
-
-// NextFunc returns the nearest next *Func for the given offset.
-func (p *Parser) NextFunc(offset int) (*Func, error) {
-	funcs := p.Funcs()
-	return nextFunc(funcs, offset)
-}
-
-// PrevFunc returns the nearest previous *Func for the given offset.
-func (p *Parser) PrevFunc(offset int) (*Func, error) {
-	funcs := p.Funcs()
-	return prevFunc(funcs, offset)
-}
-
 // Funcs returns a list of Func's from the parsed source.  Func's are sorted
 // according to the order of Go functions in the given source.
-func (p *Parser) Funcs() []*Func {
-	return parseFuncs(p.fset, p.file)
-}
-
-func parseFuncs(fset *token.FileSet, f ast.Node) []*Func {
+func (p *Parser) Funcs() Funcs {
 	var funcs []*Func
 
 	// Inspect the AST and find all function declarements and literals
-	ast.Inspect(f, func(n ast.Node) bool {
+	ast.Inspect(p.file, func(n ast.Node) bool {
 		switch x := n.(type) {
 		case *ast.FuncDecl:
 			fn := &Func{
-				Lbrace:  ToPosition(fset.Position(x.Body.Lbrace)),
-				Rbrace:  ToPosition(fset.Position(x.Body.Rbrace)),
-				FuncPos: ToPosition(fset.Position(x.Type.Func)),
+				Lbrace:  ToPosition(p.fset.Position(x.Body.Lbrace)),
+				Rbrace:  ToPosition(p.fset.Position(x.Body.Rbrace)),
+				FuncPos: ToPosition(p.fset.Position(x.Type.Func)),
 				node:    x,
 			}
 
 			if x.Doc != nil {
-				fn.Doc = ToPosition(fset.Position(x.Doc.Pos()))
+				fn.Doc = ToPosition(p.fset.Position(x.Doc.Pos()))
 			}
 
 			funcs = append(funcs, fn)
 		case *ast.FuncLit:
 			funcs = append(funcs, &Func{
-				Lbrace:  ToPosition(fset.Position(x.Body.Lbrace)),
-				Rbrace:  ToPosition(fset.Position(x.Body.Rbrace)),
-				FuncPos: ToPosition(fset.Position(x.Type.Func)),
+				Lbrace:  ToPosition(p.fset.Position(x.Body.Lbrace)),
+				Rbrace:  ToPosition(p.fset.Position(x.Body.Rbrace)),
+				FuncPos: ToPosition(p.fset.Position(x.Type.Func)),
 				node:    x,
-				literal: true,
 			})
 		}
 		return true
@@ -111,13 +85,14 @@ func parseFuncs(fset *token.FileSet, f ast.Node) []*Func {
 	return funcs
 }
 
-func enclosingFunc(funcs []*Func, offset int) (*Func, error) {
+// EnclosingFunc returns the enclosing *Func for the given offset
+func (f Funcs) EnclosingFunc(offset int) (*Func, error) {
 	var encFunc *Func
 
 	// TODO(arslan) this is iterating over all functions. Benchmark it and see
 	// if it's worth it to change it with a more effiecent search function. For
 	// now this is enough for us.
-	for _, fn := range funcs {
+	for _, fn := range f {
 		// standard function declaration without any docs. Start from the func
 		// keyword
 		start := fn.FuncPos.Offset
@@ -146,51 +121,57 @@ func enclosingFunc(funcs []*Func, offset int) (*Func, error) {
 	return encFunc, nil
 }
 
-func nextFunc(funcs []*Func, offset int) (*Func, error) {
+// NextFunc returns the nearest next Func for the given offset.
+func (f Funcs) NextFunc(offset int) (*Func, error) {
 	// find nearest next function
-	nextIndex := sort.Search(len(funcs), func(i int) bool {
-		if funcs[i].literal {
-			return false
-		}
-		return funcs[i].FuncPos.Offset > offset
+	nextIndex := sort.Search(len(f), func(i int) bool {
+		return f[i].FuncPos.Offset > offset
 	})
 
-	if nextIndex == len(funcs) {
+	if nextIndex == len(f) {
 		return nil, errors.New("no functions found")
 	}
-	return funcs[nextIndex], nil
+	return f[nextIndex], nil
 }
 
-func prevFunc(funcs []*Func, offset int) (*Func, error) {
+// PrevFunc returns the nearest previous *Func for the given offset.
+func (f Funcs) PrevFunc(offset int) (*Func, error) {
 	// start from the reverse to get the prev function
-	reverse(byOffset(funcs))
+	f.Reserve()
 
-	prevIndex := sort.Search(len(funcs), func(i int) bool {
-		if funcs[i].literal {
-			return false
-		}
-		return funcs[i].FuncPos.Offset < offset
+	prevIndex := sort.Search(len(f), func(i int) bool {
+		return f[i].FuncPos.Offset < offset
 	})
 
-	if prevIndex == len(funcs) {
+	if prevIndex == len(f) {
 		return nil, errors.New("no functions found")
 	}
 
-	return funcs[prevIndex], nil
+	return f[prevIndex], nil
 }
 
-func reverse(s sort.Interface) {
-	for start, end := 0, s.Len()-1; start < end; {
-		s.Swap(start, end)
+func (f Funcs) Len() int           { return len(f) }
+func (f Funcs) Swap(i, j int)      { f[i], f[j] = f[j], f[i] }
+func (f Funcs) Less(i, j int) bool { return f[i].FuncPos.Offset < f[j].FuncPos.Offset }
+
+// Reserve reserves the Function data
+func (f Funcs) Reserve() {
+	for start, end := 0, f.Len()-1; start < end; {
+		f.Swap(start, end)
 		start++
 		end--
 	}
 }
 
-// byOffset implements sort.Interface for []*Func based on
-// the Offset field.
-type byOffset []*Func
-
-func (b byOffset) Len() int           { return len(b) }
-func (b byOffset) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
-func (b byOffset) Less(i, j int) bool { return b[i].FuncPos.Offset < b[j].FuncPos.Offset }
+// Declarations returns a copy of funcs with only Function declarations
+func (f Funcs) Declarations() Funcs {
+	// NOTE(arslan): we can prepopulate these in the future, but again we need
+	// to benchmark first
+	var decls []*Func
+	for _, fn := range f {
+		if fn.IsDeclaration() {
+			decls = append(decls, fn)
+		}
+	}
+	return decls
+}

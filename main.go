@@ -36,11 +36,9 @@ func realMain() error {
 	if *flagOffset == "" {
 		return errors.New("no offset is passed")
 	}
-
 	if *flagMode == "" {
 		return errors.New("no mode is passed")
 	}
-
 	if *flagFile == "" {
 		return errors.New("no file is passed")
 	}
@@ -62,14 +60,15 @@ func realMain() error {
 	var fn *astcontext.Func
 	switch *flagMode {
 	case "enclosing":
-		fn, err = parser.EnclosingFunc(offset)
+		fn, err = parser.Funcs().EnclosingFunc(offset)
 	case "next":
-		fn, err = parser.NextFunc(offset)
+		fn, err = parser.Funcs().Declarations().NextFunc(offset)
 	case "prev":
-		fn, err = parser.PrevFunc(offset)
+		fn, err = parser.Funcs().Declarations().PrevFunc(offset)
 	default:
 		return fmt.Errorf("wrong mode %q passed", *flagMode)
 	}
+
 	if err != nil {
 		return err
 	}
