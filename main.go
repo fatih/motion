@@ -15,11 +15,12 @@ import (
 var (
 	flagFile   = flag.String("file", "", "Filename to be parsed")
 	flagOffset = flag.String("offset", "", "Byte offset of the cursor position")
+	flagMode   = flag.String("mode", "", "Running mode. One of {enclosing, next, prev}")
+	flagShift  = flag.Int("shift", 0, "Shift value for the modes {next, prev}")
 	flagFormat = flag.String("format", "plain",
 		"Output format. One of {plain, json, vim}")
 	flagParseComments = flag.Bool("parse-comments", false,
 		"Parse comments and add them to AST")
-	flagMode = flag.String("mode", "", "Running mode. One of {enclosing, next, prev}")
 )
 
 func main() {
@@ -61,9 +62,9 @@ func realMain() error {
 	case "enclosing":
 		fn, err = parser.Funcs().EnclosingFunc(offset)
 	case "next":
-		fn, err = parser.Funcs().Declarations().NextFunc(offset)
+		fn, err = parser.Funcs().Declarations().NextFuncShift(offset, *flagShift)
 	case "prev":
-		fn, err = parser.Funcs().Declarations().PrevFunc(offset)
+		fn, err = parser.Funcs().Declarations().PrevFuncShift(offset, *flagShift)
 	default:
 		return fmt.Errorf("wrong mode %q passed", *flagMode)
 	}

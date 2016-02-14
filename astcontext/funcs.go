@@ -121,21 +121,78 @@ func (f Funcs) EnclosingFunc(offset int) (*Func, error) {
 	return encFunc, nil
 }
 
+// // NextFunc returns the nearest next Func for the given offset.
+// func (f Funcs) NextFunc(offset int) (*Func, error) {
+// 	// find nearest next function
+// 	nextIndex := sort.Search(len(f), func(i int) bool {
+// 		return f[i].FuncPos.Offset > offset
+// 	})
+
+// 	if nextIndex == len(f) {
+// 		return nil, errors.New("no functions found")
+// 	}
+// 	return f[nextIndex], nil
+// }
+
 // NextFunc returns the nearest next Func for the given offset.
 func (f Funcs) NextFunc(offset int) (*Func, error) {
+	return f.nextFuncShift(offset, 0)
+}
+
+// NextFuncShift returns the nearest next Func for the given offset. Shift
+// shifts the index before returning. This is useful to get the second nearest
+// next function (shift being 1), third nearest next function (shift being 2),
+// etc...
+func (f Funcs) NextFuncShift(offset, shift int) (*Func, error) {
+	return f.nextFuncShift(offset, shift)
+}
+
+// PrevFunc returns the nearest previous *Func for the given offset.
+func (f Funcs) PrevFunc(offset int) (*Func, error) {
+	return f.prevFuncShift(offset, 0)
+}
+
+// PrevFuncShift returns the nearest previous Func for the given offset. Shift
+// shifts the index before returning. This is useful to get the second nearest
+// previous function (shift being 1), third nearest previous function (shift
+// being 2), etc...
+func (f Funcs) PrevFuncShift(offset, shift int) (*Func, error) {
+	return f.prevFuncShift(offset, shift)
+}
+
+// nextFuncShift returns the nearest next function for the given offset and
+// shift index. If index is zero it returns the nearest next function. If shift
+// is non zero positive number it returns the function shifted by the given
+// number. i.e: [a, b, c, d] if the nearest func is b (shift 0), shift with
+// value 1 returns c, 2 returns d and anything larger returns an error.
+func (f Funcs) nextFuncShift(offset, shift int) (*Func, error) {
+	if shift < 0 {
+		return nil, errors.New("shift can't be negative")
+	}
+
 	// find nearest next function
 	nextIndex := sort.Search(len(f), func(i int) bool {
 		return f[i].FuncPos.Offset > offset
 	})
 
-	if nextIndex == len(f) {
+	if nextIndex+shift >= len(f) {
 		return nil, errors.New("no functions found")
 	}
-	return f[nextIndex], nil
+
+	return f[nextIndex+shift], nil
 }
 
-// PrevFunc returns the nearest previous *Func for the given offset.
-func (f Funcs) PrevFunc(offset int) (*Func, error) {
+// prevFuncShift returns the nearest previous *Func for the given offset and
+// shift index. If index is zero it returns the nearest previous function. If
+// shift is non zero positive number it returns the function shifted by the
+// given number. i.e: [a, b, c, d] if the nearest previous func is c (shift 0),
+// shift with value 1 returns b, 2 returns a and anything larger returns an
+// error.
+func (f Funcs) prevFuncShift(offset, shift int) (*Func, error) {
+	if shift < 0 {
+		return nil, errors.New("shift can't be negative")
+	}
+
 	// start from the reverse to get the prev function
 	f.Reserve()
 
@@ -143,11 +200,11 @@ func (f Funcs) PrevFunc(offset int) (*Func, error) {
 		return f[i].FuncPos.Offset < offset
 	})
 
-	if prevIndex == len(f) {
+	if prevIndex+shift >= len(f) {
 		return nil, errors.New("no functions found")
 	}
 
-	return f[prevIndex], nil
+	return f[prevIndex+shift], nil
 }
 
 func (f Funcs) Len() int           { return len(f) }
