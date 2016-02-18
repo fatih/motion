@@ -50,7 +50,7 @@ func (f *Func) String() string {
 	}
 }
 
-// Funcs returns a list of Func's from the parsed source.  Func's are sorted
+// Funcs returns a list of Func's from the parsed source. Func's are sorted
 // according to the order of Go functions in the given source.
 func (p *Parser) Funcs() Funcs {
 	var funcs []*Func
@@ -161,6 +161,21 @@ func (f Funcs) nextFuncShift(offset, shift int) (*Func, error) {
 	nextIndex := sort.Search(len(f), func(i int) bool {
 		return f[i].FuncPos.Offset > offset
 	})
+
+	if nextIndex >= len(f) {
+		return nil, errors.New("no functions found")
+	}
+
+	fn := f[nextIndex]
+
+	// if our position is inside the doc, increase the shift by one to pick up
+	// the next function. This assumes that people editing a doc of a func want
+	// to pick up the next function instead of the current function.
+	if fn.Doc != nil && fn.Doc.IsValid() {
+		if fn.Doc.Offset <= offset && offset <= fn.FuncPos.Offset {
+			shift += 1
+		}
+	}
 
 	if nextIndex+shift >= len(f) {
 		return nil, errors.New("no functions found")
