@@ -122,7 +122,7 @@ If there are not functions available for any mode, it returns an error in the
 specified format:
 
 ```
-motion -file testdata/foo.go -offset 330 -mode next --format json
+$ motion -file testdata/foo.go -offset 330 -mode next --format json
 {
 	"err": "no functions found"
 }
