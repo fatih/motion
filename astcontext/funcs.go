@@ -172,7 +172,7 @@ func (f Funcs) nextFuncShift(offset, shift int) (*Func, error) {
 	// the next function. This assumes that people editing a doc of a func want
 	// to pick up the next function instead of the current function.
 	if fn.Doc != nil && fn.Doc.IsValid() {
-		if fn.Doc.Offset <= offset && offset <= fn.FuncPos.Offset {
+		if fn.Doc.Offset <= offset && offset < fn.FuncPos.Offset {
 			shift += 1
 		}
 	}
