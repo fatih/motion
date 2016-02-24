@@ -43,7 +43,7 @@ type Func struct {
 and `vim`. 
 
 
-An example exeuction for the `enclosing` mode and output in `json` format is:
+An example execution for the `enclosing` mode and output in `json` format is:
 
 ```
 $ motion -file testdata/foo.go -offset 160 -mode enclosing --format json
@@ -66,8 +66,9 @@ $ motion -file testdata/foo.go -offset 160 -mode enclosing --format json
 }
 ```
 
-To inluce the doc comments for function declarations include the `--parse-comments` flag:
+To include the doc comments for function declarations include the `--parse-comments` flag:
 
+```
 $ motion -file testdata/foo.go -offset 160 -mode enclosing --format json --parse-comments
 {
 	"func": {
