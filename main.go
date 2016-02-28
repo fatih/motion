@@ -17,8 +17,8 @@ var (
 	flagOffset = flag.String("offset", "", "Byte offset of the cursor position")
 	flagMode   = flag.String("mode", "", "Running mode. One of {enclosing, next, prev}")
 	flagShift  = flag.Int("shift", 0, "Shift value for the modes {next, prev}")
-	flagFormat = flag.String("format", "plain",
-		"Output format. One of {plain, json, vim}")
+	flagFormat = flag.String("format", "gnu",
+		"Output format. One of {gnu, json, vim}")
 	flagParseComments = flag.Bool("parse-comments", false,
 		"Parse comments and add them to AST")
 )
@@ -81,7 +81,7 @@ func realMain() error {
 	}
 
 	switch *flagFormat {
-	case "json", "plain", "vim":
+	case "json", "gnu", "vim":
 	default:
 		return fmt.Errorf("wrong -format value: %q.\n", *flagFormat)
 	}
@@ -99,8 +99,13 @@ func realMain() error {
 			return fmt.Errorf("VIM error: %s\n", err)
 		}
 		os.Stdout.Write(b)
-	case "plain":
-		fmt.Print(res)
+	case "gnu":
+		switch x := res.(type) {
+		case *astcontext.Func:
+			fmt.Println(x)
+		default:
+			fmt.Println(err.Error())
+		}
 	}
 
 	return nil

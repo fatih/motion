@@ -40,13 +40,15 @@ func (f *Func) IsLiteral() bool {
 }
 
 func (f *Func) String() string {
+	// Print according to GNU error messaging format
+	// https://www.gnu.org/prep/standards/html_node/Errors.html
 	switch x := f.node.(type) {
 	case *ast.FuncDecl:
-		return fmt.Sprintf("line: %d type: %T name: %s",
-			f.FuncPos.Line, f.node, x.Name.Name)
+		return fmt.Sprintf("%s:%d:%d %s",
+			f.FuncPos.Filename, f.FuncPos.Line, f.FuncPos.Column, x.Name.Name)
 	default:
-		return fmt.Sprintf("line: %d type: %T",
-			f.FuncPos.Line, f.node)
+		return fmt.Sprintf("%s:%d:%d %s",
+			f.FuncPos.Filename, f.FuncPos.Line, f.FuncPos.Column, "(literal)")
 	}
 }
 
