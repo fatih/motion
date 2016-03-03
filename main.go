@@ -23,7 +23,8 @@ func realMain() error {
 	var (
 		flagFile   = flag.String("file", "", "Filename to be parsed")
 		flagOffset = flag.String("offset", "", "Byte offset of the cursor position")
-		flagMode   = flag.String("mode", "", "Running mode. One of {enclosing, next, prev}")
+		flagMode   = flag.String("mode", "",
+			"Running mode. One of {enclosing, next, prev}")
 		flagShift  = flag.Int("shift", 0, "Shift value for the modes {next, prev}")
 		flagFormat = flag.String("format", "gnu",
 			"Output format. One of {gnu, json, vim}")
@@ -33,19 +34,11 @@ func realMain() error {
 
 	flag.Parse()
 
-	if *flagOffset == "" {
-		return errors.New("no offset is passed")
-	}
 	if *flagMode == "" {
 		return errors.New("no mode is passed")
 	}
 	if *flagFile == "" {
 		return errors.New("no file is passed")
-	}
-
-	offset, err := strconv.Atoi(*flagOffset)
-	if err != nil {
-		return err
 	}
 
 	opts := &astcontext.ParserOptions{
@@ -61,12 +54,25 @@ func realMain() error {
 	var fn *astcontext.Func
 
 	switch *flagMode {
-	case "enclosing":
-		fn, err = parser.Funcs().EnclosingFunc(offset)
-	case "next":
-		fn, err = parser.Funcs().Declarations().NextFuncShift(offset, *flagShift)
-	case "prev":
-		fn, err = parser.Funcs().Declarations().PrevFuncShift(offset, *flagShift)
+	case "enclosing", "next", "prev":
+		if *flagOffset == "" {
+			return errors.New("no offset is passed")
+		}
+
+		offset, err := strconv.Atoi(*flagOffset)
+		if err != nil {
+			return err
+		}
+
+		funcs := parser.Funcs()
+		switch *flagMode {
+		case "enclosing":
+			fn, err = funcs.EnclosingFunc(offset)
+		case "next":
+			fn, err = funcs.Declarations().NextFuncShift(offset, *flagShift)
+		case "prev":
+			fn, err = funcs.Declarations().PrevFuncShift(offset, *flagShift)
+		}
 	case "funcs":
 		// TODO(arslan): change the scope from file to package
 		funcs = parser.Funcs()

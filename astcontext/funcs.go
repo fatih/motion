@@ -3,16 +3,22 @@
 package astcontext
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"go/ast"
+	"go/types"
 	"sort"
 )
 
 // Func represents a declared (*ast.FuncDecl) or an anonymous (*ast.FuncLit) Go
 // function
 type Func struct {
-	FuncPos *Position `json:"func" vim:"func"`     // position of the "func" keyword
+	// signature of the function
+	Signature string `json:"sig" vim:"sig"`
+
+	// position of the "func" keyword
+	FuncPos *Position `json:"func" vim:"func"`
 	Lbrace  *Position `json:"lbrace" vim:"lbrace"` // position of "{"
 	Rbrace  *Position `json:"rbrace" vim:"rbrace"` // position of "}"
 
@@ -37,6 +43,110 @@ func (f *Func) IsDeclaration() bool {
 func (f *Func) IsLiteral() bool {
 	_, ok := f.node.(*ast.FuncLit)
 	return ok
+}
+
+// signature returns the function signature as a string.
+func signature(node ast.Node) string {
+	getParams := func(list []*ast.Field) string {
+		out := ""
+		for i, p := range list {
+			for j, n := range p.Names {
+				out += n.Name
+				if len(p.Names) != j+1 {
+					out += ", "
+				}
+			}
+
+			if len(p.Names) != 0 {
+				out += " "
+			}
+
+			buf := new(bytes.Buffer)
+			types.WriteExpr(buf, p.Type)
+			out += buf.String()
+
+			if len(list) != i+1 {
+				out += ", "
+			}
+		}
+		return out
+	}
+
+	switch x := node.(type) {
+	case *ast.FuncDecl:
+		recv := ""
+		funcName := x.Name.Name
+		input := ""
+		output := ""
+		multiOutput := false
+
+		if x.Type.Params != nil {
+			input = getParams(x.Type.Params.List)
+		}
+		if x.Type.Results != nil {
+			output = getParams(x.Type.Results.List)
+			multiOutput = len(x.Type.Results.List) > 1
+		}
+		if x.Recv != nil {
+			recv = getParams(x.Recv.List)
+		}
+
+		sig := "func "
+
+		if recv != "" {
+			sig += fmt.Sprintf("(%s) ", recv)
+		}
+
+		sig += fmt.Sprintf("%s", funcName)
+
+		sig += "("
+		if input != "" {
+			sig += fmt.Sprintf("%s", input)
+		}
+		sig += ")"
+
+		if output != "" {
+			if multiOutput {
+				sig += fmt.Sprintf(" (%s)", output)
+			} else {
+				sig += fmt.Sprintf(" %s", output)
+			}
+		}
+
+		return sig
+	case *ast.FuncLit:
+		input := ""
+		output := ""
+		multiOutput := false
+
+		if x.Type.Params != nil {
+			input = getParams(x.Type.Params.List)
+		}
+		if x.Type.Results != nil {
+			output = getParams(x.Type.Results.List)
+			multiOutput = len(x.Type.Results.List) > 1
+		}
+
+		sig := "func"
+
+		sig += "("
+		if input != "" {
+			sig += fmt.Sprintf("%s", input)
+		}
+		sig += ")"
+
+		if output != "" {
+			if multiOutput {
+				sig += fmt.Sprintf(" (%s)", output)
+			} else {
+				sig += fmt.Sprintf(" %s", output)
+			}
+		}
+
+		return sig
+	default:
+		return "<UNKNOWN>"
+	}
 }
 
 func (f *Func) String() string {
@@ -72,14 +182,18 @@ func (p *Parser) Funcs() Funcs {
 				fn.Doc = ToPosition(p.fset.Position(x.Doc.Pos()))
 			}
 
+			fn.Signature = signature(x)
 			funcs = append(funcs, fn)
 		case *ast.FuncLit:
-			funcs = append(funcs, &Func{
+			fn := &Func{
 				Lbrace:  ToPosition(p.fset.Position(x.Body.Lbrace)),
 				Rbrace:  ToPosition(p.fset.Position(x.Body.Rbrace)),
 				FuncPos: ToPosition(p.fset.Position(x.Type.Func)),
 				node:    x,
-			})
+			}
+
+			fn.Signature = signature(x)
+			funcs = append(funcs, fn)
 		}
 		return true
 	})

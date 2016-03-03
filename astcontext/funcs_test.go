@@ -92,3 +92,58 @@ func bar() error {
 		}
 	}
 }
+
+func TestFunc_Signature(t *testing.T) {
+	var src = `package main
+
+var a = func() { fmt.Println("tokyo") }
+
+func foo(a, b int, foo string) (string, error) {
+	_ = func() {
+		// -------
+	}
+	return nil
+}
+
+func (q *qaz) example(x,y,z int) error {
+	_ = func(foo int) error {
+		return nil
+	}
+}
+
+func example() {}
+
+func variadic(x ...string) {}
+
+func bar(x int) error {
+	return nil
+}`
+
+	testFuncs := []struct {
+		want string
+	}{
+		{want: "func()"},
+		{want: "func foo(a, b int, foo string) (string, error)"},
+		{want: "func()"},
+		{want: "func (q *qaz) example(x, y, z int) error"},
+		{want: "func(foo int) error"},
+		{want: "func example()"},
+		{want: "func variadic(x ...string)"},
+		{want: "func bar(x int) error"},
+	}
+
+	parser, err := NewParser().ParseSrc([]byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	funcs := parser.Funcs()
+
+	for i, fn := range funcs {
+		fmt.Printf("[%d] %s\n", i, fn.Signature)
+		if fn.Signature != testFuncs[i].want {
+			t.Errorf("function signatures\n\twant: %s\n\tgot : %s",
+				testFuncs[i].want, fn.Signature)
+		}
+	}
+}
