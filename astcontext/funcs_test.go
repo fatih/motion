@@ -98,6 +98,17 @@ func TestFunc_Signature(t *testing.T) {
 
 var a = func() { fmt.Println("tokyo") }
 
+func foo(
+	a int,
+	b string,
+	c bool,
+) (
+	bool,
+	error,
+) {
+	return false, nil
+}
+
 func foo(a, b int, foo string) (string, error) {
 	_ = func() {
 		// -------
@@ -123,6 +134,7 @@ func bar(x int) error {
 		want string
 	}{
 		{want: "func()"},
+		{want: "func foo(a int, b string, c bool) (bool, error)"},
 		{want: "func foo(a, b int, foo string) (string, error)"},
 		{want: "func()"},
 		{want: "func (q *qaz) example(x, y, z int) error"},
