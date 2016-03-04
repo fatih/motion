@@ -75,7 +75,7 @@ func realMain() error {
 		}
 	case "funcs":
 		// TODO(arslan): change the scope from file to package
-		funcs = parser.Funcs()
+		funcs = parser.Funcs().Declarations()
 	default:
 		return fmt.Errorf("wrong mode %q passed", *flagMode)
 	}

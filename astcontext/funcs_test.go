@@ -152,10 +152,25 @@ func bar(x int) error {
 	funcs := parser.Funcs()
 
 	for i, fn := range funcs {
-		fmt.Printf("[%d] %s\n", i, fn.Signature)
-		if fn.Signature != testFuncs[i].want {
+		fmt.Printf("[%d] %s\n", i, fn.Signature.Full)
+		if fn.Signature.Full != testFuncs[i].want {
 			t.Errorf("function signatures\n\twant: %s\n\tgot : %s",
 				testFuncs[i].want, fn.Signature)
 		}
+	}
+}
+
+func TestFuncs_NoFuncs(t *testing.T) {
+	var src = `package foo`
+
+	parser, err := NewParser().ParseSrc([]byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	funcs := parser.Funcs()
+	if len(funcs) != 0 {
+		t.Errorf("There should be no functions, but got %d", len(funcs))
+
 	}
 }

@@ -20,4 +20,5 @@ func ToPosition(pos token.Position) *Position {
 	}
 }
 
+// IsValid returns true if position is valid
 func (pos Position) IsValid() bool { return pos.Line > 0 }

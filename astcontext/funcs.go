@@ -11,11 +11,31 @@ import (
 	"sort"
 )
 
+// Signature defines the function signature
+type Signature struct {
+	// Full signature representation
+	Full string `json:"full" vim:"full"`
+
+	// Receiver representation. Empty for non methods.
+	Recv string `json:"recv" vim:"recv"`
+
+	// Name of the function. Empty for function literals.
+	Name string `json:"name" vim:"name"`
+
+	// Input arguments of the function, if present
+	In string `json:"in" vim:"in"`
+
+	// Output argument of the function, if present
+	Out string `json:"out" vim:"out"`
+}
+
+func (s *Signature) String() string { return s.Full }
+
 // Func represents a declared (*ast.FuncDecl) or an anonymous (*ast.FuncLit) Go
 // function
 type Func struct {
-	// signature of the function
-	Signature string `json:"sig" vim:"sig"`
+	// Signature of the function
+	Signature *Signature `json:"sig" vim:"sig"`
 
 	// position of the "func" keyword
 	FuncPos *Position `json:"func" vim:"func"`
@@ -45,8 +65,9 @@ func (f *Func) IsLiteral() bool {
 	return ok
 }
 
-// signature returns the function signature as a string.
-func signature(node ast.Node) string {
+// NewSignature returns a function signature from the given node. Node should
+// be of type *ast.FuncDecl or *ast.FuncLit
+func NewSignature(node ast.Node) *Signature {
 	getParams := func(list []*ast.Field) string {
 		out := ""
 		for i, p := range list {
@@ -74,78 +95,80 @@ func signature(node ast.Node) string {
 
 	switch x := node.(type) {
 	case *ast.FuncDecl:
-		recv := ""
-		funcName := x.Name.Name
-		input := ""
-		output := ""
+		sig := &Signature{
+			Name: x.Name.Name,
+		}
+
 		multiOutput := false
 
 		if x.Type.Params != nil {
-			input = getParams(x.Type.Params.List)
+			sig.In = getParams(x.Type.Params.List)
 		}
 		if x.Type.Results != nil {
-			output = getParams(x.Type.Results.List)
+			sig.Out = getParams(x.Type.Results.List)
 			multiOutput = len(x.Type.Results.List) > 1
 		}
 		if x.Recv != nil {
-			recv = getParams(x.Recv.List)
+			sig.Recv = getParams(x.Recv.List)
 		}
 
-		sig := "func "
+		full := "func "
 
-		if recv != "" {
-			sig += fmt.Sprintf("(%s) ", recv)
+		if sig.Recv != "" {
+			full += fmt.Sprintf("(%s) ", sig.Recv)
 		}
 
-		sig += fmt.Sprintf("%s", funcName)
+		full += fmt.Sprintf("%s", sig.Name)
 
-		sig += "("
-		if input != "" {
-			sig += fmt.Sprintf("%s", input)
+		full += "("
+		if sig.In != "" {
+			full += fmt.Sprintf("%s", sig.In)
 		}
-		sig += ")"
+		full += ")"
 
-		if output != "" {
+		if sig.Out != "" {
 			if multiOutput {
-				sig += fmt.Sprintf(" (%s)", output)
+				full += fmt.Sprintf(" (%s)", sig.Out)
 			} else {
-				sig += fmt.Sprintf(" %s", output)
+				full += fmt.Sprintf(" %s", sig.Out)
 			}
 		}
 
+		sig.Full = full
 		return sig
 	case *ast.FuncLit:
-		input := ""
-		output := ""
+		sig := &Signature{}
+
 		multiOutput := false
 
 		if x.Type.Params != nil {
-			input = getParams(x.Type.Params.List)
+			sig.In = getParams(x.Type.Params.List)
 		}
 		if x.Type.Results != nil {
-			output = getParams(x.Type.Results.List)
+			sig.Out = getParams(x.Type.Results.List)
 			multiOutput = len(x.Type.Results.List) > 1
 		}
 
-		sig := "func"
+		full := "func"
 
-		sig += "("
-		if input != "" {
-			sig += fmt.Sprintf("%s", input)
+		full += "("
+		if sig.In != "" {
+			full += fmt.Sprintf("%s", sig.In)
 		}
-		sig += ")"
+		full += ")"
 
-		if output != "" {
+		if sig.Out != "" {
 			if multiOutput {
-				sig += fmt.Sprintf(" (%s)", output)
+				full += fmt.Sprintf(" (%s)", sig.Out)
 			} else {
-				sig += fmt.Sprintf(" %s", output)
+				full += fmt.Sprintf(" %s", sig.Out)
 			}
 		}
 
+		sig.Full = full
 		return sig
 	default:
-		return "<UNKNOWN>"
+		return &Signature{Full: "UNKNOWN"}
 	}
 }
 
@@ -182,7 +205,7 @@ func (p *Parser) Funcs() Funcs {
 				fn.Doc = ToPosition(p.fset.Position(x.Doc.Pos()))
 			}
 
-			fn.Signature = signature(x)
+			fn.Signature = NewSignature(x)
 			funcs = append(funcs, fn)
 		case *ast.FuncLit:
 			fn := &Func{
@@ -192,7 +215,7 @@ func (p *Parser) Funcs() Funcs {
 				node:    x,
 			}
 
-			fn.Signature = signature(x)
+			fn.Signature = NewSignature(x)
 			funcs = append(funcs, fn)
 		}
 		return true
@@ -289,7 +312,7 @@ func (f Funcs) nextFuncShift(offset, shift int) (*Func, error) {
 	// to pick up the next function instead of the current function.
 	if fn.Doc != nil && fn.Doc.IsValid() {
 		if fn.Doc.Offset <= offset && offset < fn.FuncPos.Offset {
-			shift += 1
+			shift++
 		}
 	}
 
