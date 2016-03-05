@@ -16,9 +16,10 @@ func Bar() (string, error) {
 	return "vim-go", nil
 }
 
-// and this is a multi comment doc. I think docs are
-// really different kind of things, bla bla
-func foo() error {
+// and this is a multi comment doc. I think
+// docs are really different kind of things,
+// bla bla
+func example() error {
 	a := func() {
 		fmt.Println("zeynep")
 	}

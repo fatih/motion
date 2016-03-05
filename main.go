@@ -109,11 +109,6 @@ func printErr(mode string, err error) error {
 }
 
 func printResult(mode string, res interface{}) error {
-	// if it contains only one function, return it as a single function
-	if funcs, ok := res.(astcontext.Funcs); ok && len(funcs) == 1 {
-		res = funcs[0]
-	}
-
 	switch mode {
 	case "json":
 		b, err := json.MarshalIndent(&res, "", "\t")
