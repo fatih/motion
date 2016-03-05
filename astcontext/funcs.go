@@ -188,10 +188,21 @@ func (f *Func) String() string {
 // Funcs returns a list of Func's from the parsed source. Func's are sorted
 // according to the order of Go functions in the given source.
 func (p *Parser) Funcs() Funcs {
-	var funcs []*Func
+	var files []*ast.File
+	if p.file != nil {
+		files = append(files, p.file)
+	}
 
-	// Inspect the AST and find all function declarements and literals
-	ast.Inspect(p.file, func(n ast.Node) bool {
+	if p.pkgs != nil {
+		for _, pkg := range p.pkgs {
+			for _, f := range pkg.Files {
+				files = append(files, f)
+			}
+		}
+	}
+
+	var funcs []*Func
+	inspect := func(n ast.Node) bool {
 		switch x := n.(type) {
 		case *ast.FuncDecl:
 			fn := &Func{
@@ -219,7 +230,12 @@ func (p *Parser) Funcs() Funcs {
 			funcs = append(funcs, fn)
 		}
 		return true
-	})
+	}
+
+	for _, file := range files {
+		// Inspect the AST and find all function declarements and literals
+		ast.Inspect(file, inspect)
+	}
 
 	return funcs
 }
@@ -348,9 +364,11 @@ func (f Funcs) prevFuncShift(offset, shift int) (*Func, error) {
 	return f[prevIndex+shift], nil
 }
 
-func (f Funcs) Len() int           { return len(f) }
-func (f Funcs) Swap(i, j int)      { f[i], f[j] = f[j], f[i] }
-func (f Funcs) Less(i, j int) bool { return f[i].FuncPos.Offset < f[j].FuncPos.Offset }
+func (f Funcs) Len() int      { return len(f) }
+func (f Funcs) Swap(i, j int) { f[i], f[j] = f[j], f[i] }
+func (f Funcs) Less(i, j int) bool {
+	return f[i].FuncPos.Offset < f[j].FuncPos.Offset
+}
 
 // Reserve reserves the Function data
 func (f Funcs) Reserve() {

@@ -22,6 +22,7 @@ func main() {
 func realMain() error {
 	var (
 		flagFile   = flag.String("file", "", "Filename to be parsed")
+		flagDir    = flag.String("dir", "", "Directory to be parsed")
 		flagOffset = flag.String("offset", "", "Byte offset of the cursor position")
 		flagMode   = flag.String("mode", "",
 			"Running mode. One of {enclosing, next, prev}")
@@ -37,15 +38,22 @@ func realMain() error {
 	if *flagMode == "" {
 		return errors.New("no mode is passed")
 	}
-	if *flagFile == "" {
-		return errors.New("no file is passed")
-	}
 
 	opts := &astcontext.ParserOptions{
-		ParseComments: *flagParseComments,
+		Comments: *flagParseComments,
 	}
 
-	parser, err := astcontext.NewParser().SetOptions(opts).ParseFile(*flagFile)
+	parser := astcontext.NewParser().SetOptions(opts)
+	var err error
+
+	switch {
+	case *flagFile != "":
+		parser, err = parser.ParseFile(*flagFile)
+	case *flagDir != "":
+		parser, err = parser.ParseDir(*flagDir)
+	default:
+		return errors.New("-file or -dir is missing")
+	}
 	if err != nil {
 		return err
 	}

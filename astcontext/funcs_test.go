@@ -76,7 +76,7 @@ func bar() error {
 		{start: 29, want: 108},
 	}
 
-	opts := &ParserOptions{ParseComments: true}
+	opts := &ParserOptions{Comments: true}
 	parser, err := NewParser().SetOptions(opts).ParseSrc([]byte(src))
 	if err != nil {
 		t.Fatal(err)
