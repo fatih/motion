@@ -25,7 +25,7 @@ func realMain() error {
 		flagDir    = flag.String("dir", "", "Directory to be parsed")
 		flagOffset = flag.String("offset", "", "Byte offset of the cursor position")
 		flagMode   = flag.String("mode", "",
-			"Running mode. One of {enclosing, next, prev}")
+			"Running mode. One of {enclosing, next, prev, decls}")
 		flagShift  = flag.Int("shift", 0, "Shift value for the modes {next, prev}")
 		flagFormat = flag.String("format", "gnu",
 			"Output format. One of {gnu, json, vim}")
@@ -58,9 +58,6 @@ func realMain() error {
 		return err
 	}
 
-	var funcs astcontext.Funcs
-	var fn *astcontext.Func
-
 	switch *flagMode {
 	case "enclosing", "next", "prev":
 		if *flagOffset == "" {
@@ -72,6 +69,8 @@ func realMain() error {
 			return err
 		}
 
+		var fn *astcontext.Func
+
 		funcs := parser.Funcs()
 		switch *flagMode {
 		case "enclosing":
@@ -81,23 +80,59 @@ func realMain() error {
 		case "prev":
 			fn, err = funcs.Declarations().PrevFuncShift(offset, *flagShift)
 		}
-	case "funcs":
-		// TODO(arslan): change the scope from file to package
-		funcs = parser.Funcs().Declarations()
+
+		// do no return, instead pass it to the editor so it can parse it
+		if err != nil {
+			return printErr(*flagFormat, err)
+		}
+
+		if fn != nil {
+			funcs = append(funcs, fn)
+		}
+
+		return printResult(*flagFormat, funcs)
+	case "decls":
+		funcs := parser.Funcs().Declarations()
+		types := parser.Types().TopLevel()
+
+		type decl struct {
+			Keyword  string `json:"keyword" vim:"keyword"`
+			Ident    string `json:"ident" vim:"ident"`
+			Full     string `json:"full" vim:"full"`
+			Filename string `json:"filename" vim:"filename"`
+			Line     int    `json:"line" vim:"line"`
+			Col      int    `json:"col" vim:"col"`
+		}
+
+		var decls []decl
+
+		for _, t := range types {
+			decls = append(decls, decl{
+				Keyword:  "type",
+				Ident:    t.Signature.Name,
+				Full:     t.Signature.Full,
+				Filename: t.TypePos.Filename,
+				Line:     t.TypePos.Line,
+				Col:      t.TypePos.Column,
+			})
+		}
+
+		for _, f := range funcs {
+			decls = append(decls, decl{
+				Keyword:  "func",
+				Ident:    f.Signature.Name,
+				Full:     f.Signature.Full,
+				Filename: f.FuncPos.Filename,
+				Line:     f.FuncPos.Line,
+				Col:      f.FuncPos.Column,
+			})
+		}
+
+		return printResult(*flagFormat, decls)
 	default:
 		return fmt.Errorf("wrong mode %q passed", *flagMode)
 	}
 
-	// do no return, instead pass it to the editor so it can parse it
-	if err != nil {
-		return printErr(*flagFormat, err)
-	}
-
-	if fn != nil {
-		funcs = append(funcs, fn)
-	}
-
-	return printResult(*flagFormat, funcs)
 }
 
 func printErr(mode string, err error) error {

@@ -11,8 +11,8 @@ import (
 	"sort"
 )
 
-// Signature defines the function signature
-type Signature struct {
+// FuncSignature defines the function signature
+type FuncSignature struct {
 	// Full signature representation
 	Full string `json:"full" vim:"full"`
 
@@ -29,13 +29,13 @@ type Signature struct {
 	Out string `json:"out" vim:"out"`
 }
 
-func (s *Signature) String() string { return s.Full }
+func (s *FuncSignature) String() string { return s.Full }
 
 // Func represents a declared (*ast.FuncDecl) or an anonymous (*ast.FuncLit) Go
 // function
 type Func struct {
 	// Signature of the function
-	Signature *Signature `json:"sig" vim:"sig"`
+	Signature *FuncSignature `json:"sig" vim:"sig"`
 
 	// position of the "func" keyword
 	FuncPos *Position `json:"func" vim:"func"`
@@ -65,9 +65,9 @@ func (f *Func) IsLiteral() bool {
 	return ok
 }
 
-// NewSignature returns a function signature from the given node. Node should
+// NewFuncSignature returns a function signature from the given node. Node should
 // be of type *ast.FuncDecl or *ast.FuncLit
-func NewSignature(node ast.Node) *Signature {
+func NewFuncSignature(node ast.Node) *FuncSignature {
 	getParams := func(list []*ast.Field) string {
 		out := ""
 		for i, p := range list {
@@ -95,7 +95,7 @@ func NewSignature(node ast.Node) *Signature {
 
 	switch x := node.(type) {
 	case *ast.FuncDecl:
-		sig := &Signature{
+		sig := &FuncSignature{
 			Name: x.Name.Name,
 		}
 
@@ -137,7 +137,7 @@ func NewSignature(node ast.Node) *Signature {
 		sig.Full = full
 		return sig
 	case *ast.FuncLit:
-		sig := &Signature{}
+		sig := &FuncSignature{}
 
 		multiOutput := false
 
@@ -168,7 +168,7 @@ func NewSignature(node ast.Node) *Signature {
 		sig.Full = full
 		return sig
 	default:
-		return &Signature{Full: "UNKNOWN"}
+		return &FuncSignature{Full: "UNKNOWN"}
 	}
 }
 
@@ -216,7 +216,7 @@ func (p *Parser) Funcs() Funcs {
 				fn.Doc = ToPosition(p.fset.Position(x.Doc.Pos()))
 			}
 
-			fn.Signature = NewSignature(x)
+			fn.Signature = NewFuncSignature(x)
 			funcs = append(funcs, fn)
 		case *ast.FuncLit:
 			fn := &Func{
@@ -226,7 +226,7 @@ func (p *Parser) Funcs() Funcs {
 				node:    x,
 			}
 
-			fn.Signature = NewSignature(x)
+			fn.Signature = NewFuncSignature(x)
 			funcs = append(funcs, fn)
 		}
 		return true
