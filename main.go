@@ -86,11 +86,7 @@ func realMain() error {
 			return printErr(*flagFormat, err)
 		}
 
-		if fn != nil {
-			funcs = append(funcs, fn)
-		}
-
-		return printResult(*flagFormat, funcs)
+		return printResult(*flagFormat, fn)
 	case "decls":
 		funcs := parser.Funcs().Declarations()
 		types := parser.Types().TopLevel()
