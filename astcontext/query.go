@@ -70,7 +70,7 @@ func (p *Parser) Run(query *Query) (*Result, error) {
 
 		for _, incl := range query.Includes {
 			switch incl {
-			case "types":
+			case "type":
 				for _, t := range types {
 					decls = append(decls, Decl{
 						Keyword:  "type",
@@ -81,7 +81,7 @@ func (p *Parser) Run(query *Query) (*Result, error) {
 						Col:      t.TypePos.Column,
 					})
 				}
-			case "funcs":
+			case "func":
 				for _, f := range funcs {
 					decls = append(decls, Decl{
 						Keyword:  "func",

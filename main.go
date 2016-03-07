@@ -26,8 +26,8 @@ func realMain() error {
 		flagOffset = flag.Int("offset", 0, "Byte offset of the cursor position")
 		flagMode   = flag.String("mode", "",
 			"Running mode. One of {enclosing, next, prev, decls}")
-		flagInclude = flag.String("include", "funcs,types",
-			"Included declarations for mode {decls}. Comma delimited. Options: {funcs, types}")
+		flagInclude = flag.String("include", "",
+			"Included declarations for mode {decls}. Comma delimited. Options: {func, type}")
 		flagShift         = flag.Int("shift", 0, "Shift value for the modes {next, prev}")
 		flagFormat        = flag.String("format", "json", "Output format. One of {json, vim}")
 		flagParseComments = flag.Bool("parse-comments", false,
