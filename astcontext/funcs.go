@@ -206,10 +206,14 @@ func (p *Parser) Funcs() Funcs {
 		switch x := n.(type) {
 		case *ast.FuncDecl:
 			fn := &Func{
-				Lbrace:  ToPosition(p.fset.Position(x.Body.Lbrace)),
-				Rbrace:  ToPosition(p.fset.Position(x.Body.Rbrace)),
 				FuncPos: ToPosition(p.fset.Position(x.Type.Func)),
 				node:    x,
+			}
+
+			// can be nil for forward declarations
+			if x.Body != nil {
+				fn.Lbrace = ToPosition(p.fset.Position(x.Body.Lbrace))
+				fn.Rbrace = ToPosition(p.fset.Position(x.Body.Rbrace))
 			}
 
 			if x.Doc != nil {

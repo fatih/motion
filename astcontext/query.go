@@ -20,8 +20,8 @@ type Decl struct {
 type Result struct {
 	Mode string `json:"mode" vim:"mode"`
 
-	Decls []Decl `json:"decls" vim:"decls"`
-	Func  *Func  `json:"func" vim:"fn"`
+	Decls []Decl `json:"decls,omitempty" vim:"decls,omitempty"`
+	Func  *Func  `json:"func,omitempty" vim:"fn,omitempty"`
 }
 
 // Query specifies a single query to the parser

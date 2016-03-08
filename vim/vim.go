@@ -84,21 +84,23 @@ func marshal(buf *bytes.Buffer, v reflect.Value) error {
 				continue
 			}
 
-			fv := v.Field(i)
-			if !fv.IsValid() || isEmptyValue(fv) {
-				continue
-			}
-
 			tag := sf.Tag.Get("vim")
 			if tag == "-" {
 				continue
 			}
-			name, _ := parseTag(tag)
+
+			name, options := parseTag(tag)
 			if !isValidTag(name) {
 				name = ""
 			}
+
 			if name == "" {
 				name = sf.Name
+			}
+
+			fv := v.Field(i)
+			if !fv.IsValid() || options == "omitempty" && isEmptyValue(fv) {
+				continue
 			}
 
 			buf.WriteString(sep)
