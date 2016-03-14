@@ -1,9 +1,9 @@
 # motion
 
 Motion is a tool that was designed to work with editors. It is providing
-contextual information for a given offset. Editors can use these informations
-to implement navigation, text editing, etc... that are specific to a Go source
-code. 
+contextual information for a given offset(option) from a file or directory of
+files.  Editors can use these informations to implement navigation, text
+editing, etc... that are specific to a Go source code. 
 
 It's optimized and created to work with
 [vim-go](https://github.com/fatih/vim-go), but it's designed to work with any
@@ -17,9 +17,12 @@ go get github.com/fatih/motion
 
 # Usage
 
-`motion` is meant to be run via the editor. Currently it has three modes you can use:
+`motion` is meant to be run via the editor. Currently it has the following
+modes you can use:
 
-* `enclosing`: returns information about the enclosing function for a given offset
+* `decls`: returns a list of declarations based on the `-include` flag
+* `enclosing`: returns information about the enclosing function for a given
+  offset
 * `next`: returns the next function information for a given offset
 * `prev`: returns the previous function information for a given offset
 
@@ -28,7 +31,11 @@ A `function information` is currently the following type definition (defined as
 
 ```
 type Func struct {
-	FuncPos *Position `json:"func" vim:"func"`     // position of the "func" keyword
+	// Signature of the function
+	Signature *FuncSignature `json:"sig" vim:"sig"`
+
+	// position of the "func" keyword
+	FuncPos *Position `json:"func" vim:"func"`
 	Lbrace  *Position `json:"lbrace" vim:"lbrace"` // position of "{"
 	Rbrace  *Position `json:"rbrace" vim:"rbrace"` // position of "}"
 
@@ -39,57 +46,83 @@ type Func struct {
 }
 ```
 
-`motion` can output the information currently in three formats: `plain`, `json`
-and `vim`. 
-
+`motion` can output the information currently in formats: `json` and `vim`. 
 
 An example execution for the `enclosing` mode and output in `json` format is:
 
 ```
-$ motion -file testdata/foo.go -offset 160 -mode enclosing --format json
+$ motion -file testdata/main.go -offset 180 -mode enclosing --format json
 {
+	"mode": "enclosing",
 	"func": {
-		"offset": 151,
-		"line": 15,
-		"col": 1
-	},
-	"lbrace": {
-		"offset": 178,
-		"line": 15,
-		"col": 28
-	},
-	"rbrace": {
-		"offset": 202,
-		"line": 17,
-		"col": 1
+		"sig": {
+			"full": "func Bar() (string, error)",
+			"recv": "",
+			"name": "Bar",
+			"in": "",
+			"out": "string, error"
+		},
+		"func": {
+			"filename": "testdata/main.go",
+			"offset": 174,
+			"line": 15,
+			"col": 1
+		},
+		"lbrace": {
+			"filename": "testdata/main.go",
+			"offset": 201,
+			"line": 15,
+			"col": 28
+		},
+		"rbrace": {
+			"filename": "testdata/main.go",
+			"offset": 225,
+			"line": 17,
+			"col": 1
+		}
 	}
 }
 ```
 
-To include the doc comments for function declarations include the `--parse-comments` flag:
+To include the doc comments for function declarations include the
+`--parse-comments` flag:
 
 ```
-$ motion -file testdata/foo.go -offset 160 -mode enclosing --format json --parse-comments
+$ motion -file testdata/main.go -offset 180 -mode enclosing --format json --parse-comments
 {
+	"mode": "enclosing",
 	"func": {
-		"offset": 151,
-		"line": 15,
-		"col": 1
-	},
-	"lbrace": {
-		"offset": 178,
-		"line": 15,
-		"col": 28
-	},
-	"rbrace": {
-		"offset": 202,
-		"line": 17,
-		"col": 1
-	},
-	"doc": {
-		"offset": 126,
-		"line": 14,
-		"col": 1
+		"sig": {
+			"full": "func Bar() (string, error)",
+			"recv": "",
+			"name": "Bar",
+			"in": "",
+			"out": "string, error"
+		},
+		"func": {
+			"filename": "testdata/main.go",
+			"offset": 174,
+			"line": 15,
+			"col": 1
+		},
+		"lbrace": {
+			"filename": "testdata/main.go",
+			"offset": 201,
+			"line": 15,
+			"col": 28
+		},
+		"rbrace": {
+			"filename": "testdata/main.go",
+			"offset": 225,
+			"line": 17,
+			"col": 1
+		},
+		"doc": {
+			"filename": "testdata/main.go",
+			"offset": 134,
+			"line": 14,
+			"col": 1
+		}
 	}
 }
 ```
@@ -98,22 +131,35 @@ For example the same query, but with mode `-mode next` returns a different
 result. Instead it returns the next function inside the source code:
 
 ```
-$ motion -file testdata/foo.go -offset 160 -mode next --format json
+$ motion -file testdata/main.go -offset 180 -mode next --format json
 {
+	"mode": "next",
 	"func": {
-		"offset": 302,
-		"line": 21,
-		"col": 1
-	},
-	"lbrace": {
-		"offset": 319,
-		"line": 21,
-		"col": 18
-	},
-	"rbrace": {
-		"offset": 382,
-		"line": 29,
-		"col": 1
+		"sig": {
+			"full": "func example() error",
+			"recv": "",
+			"name": "example",
+			"in": "",
+			"out": "error"
+		},
+		"func": {
+			"filename": "testdata/main.go",
+			"offset": 318,
+			"line": 21,
+			"col": 1
+		},
+		"lbrace": {
+			"filename": "testdata/main.go",
+			"offset": 339,
+			"line": 21,
+			"col": 22
+		},
+		"rbrace": {
+			"filename": "testdata/main.go",
+			"offset": 402,
+			"line": 29,
+			"col": 1
+		}
 	}
 }
 ```
@@ -122,8 +168,44 @@ If there are not functions available for any mode, it returns an error in the
 specified format:
 
 ```
-$ motion -file testdata/foo.go -offset 330 -mode next --format json
+$ motion -file testdata/main.go -offset 330 -mode next --format json
 {
 	"err": "no functions found"
+}
+```
+
+Lastly for the mode `decls`, we pass the file (you can also pass a directory)
+and instruct to only include function declarations with the `-include func`
+flag:
+```
+$ motion -file testdata/main.go -mode decls -include func
+{
+	"mode": "decls",
+	"decls": [
+		{
+			"keyword": "func",
+			"ident": "main",
+			"full": "func main()",
+			"filename": "testdata/main.go",
+			"line": 9,
+			"col": 1
+		},
+		{
+			"keyword": "func",
+			"ident": "Bar",
+			"full": "func Bar() (string, error)",
+			"filename": "testdata/main.go",
+			"line": 15,
+			"col": 1
+		},
+		{
+			"keyword": "func",
+			"ident": "example",
+			"full": "func example() error",
+			"filename": "testdata/main.go",
+			"line": 21,
+			"col": 1
+		}
+	]
 }
 ```

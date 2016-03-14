@@ -35,6 +35,13 @@ func realMain() error {
 	)
 
 	flag.Parse()
+	if flag.NFlag() == 0 {
+		flag.Usage()
+		return nil
+	}
+
+	a := flag.NFlag()
+	fmt.Println("a", a)
 
 	if *flagMode == "" {
 		return errors.New("no mode is passed")
