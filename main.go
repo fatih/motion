@@ -40,9 +40,6 @@ func realMain() error {
 		return nil
 	}
 
-	a := flag.NFlag()
-	fmt.Println("a", a)
-
 	if *flagMode == "" {
 		return errors.New("no mode is passed")
 	}
