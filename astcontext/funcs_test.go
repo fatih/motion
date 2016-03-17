@@ -32,7 +32,8 @@ func foo() error {
 		{96, 35}, // func foo() error {
 	}
 
-	parser, err := NewParser().SetOptions(nil).ParseSrc([]byte(src))
+	opts := &ParserOptions{Src: []byte(src)}
+	parser, err := NewParser(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,8 +77,11 @@ func bar() error {
 		{start: 29, want: 108},
 	}
 
-	opts := &ParserOptions{Comments: true}
-	parser, err := NewParser().SetOptions(opts).ParseSrc([]byte(src))
+	opts := &ParserOptions{
+		Src:      []byte(src),
+		Comments: true,
+	}
+	parser, err := NewParser(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +148,10 @@ func bar(x int) error {
 		{want: "func bar(x int) error"},
 	}
 
-	parser, err := NewParser().ParseSrc([]byte(src))
+	opts := &ParserOptions{
+		Src: []byte(src),
+	}
+	parser, err := NewParser(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +170,10 @@ func bar(x int) error {
 func TestFuncs_NoFuncs(t *testing.T) {
 	var src = `package foo`
 
-	parser, err := NewParser().ParseSrc([]byte(src))
+	opts := &ParserOptions{
+		Src: []byte(src),
+	}
+	parser, err := NewParser(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
