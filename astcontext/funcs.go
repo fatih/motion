@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
-	"go/types"
 	"sort"
 )
 
@@ -83,7 +82,7 @@ func NewFuncSignature(node ast.Node) *FuncSignature {
 			}
 
 			buf := new(bytes.Buffer)
-			types.WriteExpr(buf, p.Type)
+			writeExpr(buf, p.Type)
 			out += buf.String()
 
 			if len(list) != i+1 {
