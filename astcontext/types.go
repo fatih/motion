@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"go/ast"
+	"go/types"
 )
 
 // TypeSignature represents a type declaration signature
@@ -39,7 +40,7 @@ type Types []*Type
 // NewTypeSignature returns a TypeSignature from the given typespec node
 func NewTypeSignature(node *ast.TypeSpec) *TypeSignature {
 	buf := new(bytes.Buffer)
-	writeExpr(buf, node.Type)
+	types.WriteExpr(buf, node.Type)
 
 	sig := &TypeSignature{
 		Name: node.Name.Name,
