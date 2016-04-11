@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fatih/motion/astcontext"
-	"github.com/fatih/motion/vim"
+	"github.com/bikbah/motion/astcontext"
+	"github.com/bikbah/motion/vim"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func realMain() error {
 		flagDir    = flag.String("dir", "", "Directory to be parsed")
 		flagOffset = flag.Int("offset", 0, "Byte offset of the cursor position")
 		flagMode   = flag.String("mode", "",
-			"Running mode. One of {enclosing, next, prev, decls}")
+			"Running mode. One of {enclosing, next, prev, decls, benclosing}")
 		flagInclude = flag.String("include", "",
 			"Included declarations for mode {decls}. Comma delimited. Options: {func, type}")
 		flagShift         = flag.Int("shift", 0, "Shift value for the modes {next, prev}")

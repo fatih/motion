@@ -22,6 +22,7 @@ type Result struct {
 
 	Decls []Decl `json:"decls,omitempty" vim:"decls,omitempty"`
 	Func  *Func  `json:"func,omitempty" vim:"fn,omitempty"`
+	Block *Block `json:"block,omitempty" vim:"block,omitempty"`
 }
 
 // Query specifies a single query to the parser
@@ -39,6 +40,18 @@ func (p *Parser) Run(query *Query) (*Result, error) {
 	}
 
 	switch query.Mode {
+	case "benclosing":
+
+		block, err := p.Blocks().EnclosingBlock(query.Offset)
+		// do no return, instead pass it to the editor so it can parse it
+		if err != nil {
+			return nil, err
+		}
+
+		return &Result{
+			Mode:  query.Mode,
+			Block: block,
+		}, nil
 	case "enclosing", "next", "prev":
 		var fn *Func
 		var err error
