@@ -15,13 +15,22 @@ type Decl struct {
 	Col      int    `json:"col" vim:"col"`
 }
 
+// Comment specified the result of the "comment" mode.
+type Comment struct {
+	StartLine int `json:"startLine" vim:"startLine"`
+	StartCol  int `json:"startCol" vim:"startCol"`
+	EndLine   int `json:"endLine" vim:"endLine"`
+	EndCol    int `json:"endCol" vim:"endCol"`
+}
+
 // Result is the common result of any motion query.
 // It contains a query-specific result element.
 type Result struct {
 	Mode string `json:"mode" vim:"mode"`
 
-	Decls []Decl `json:"decls,omitempty" vim:"decls,omitempty"`
-	Func  *Func  `json:"func,omitempty" vim:"fn,omitempty"`
+	Comment Comment `json:"comment,omitempty" vim:"comment,omitempty"`
+	Decls   []Decl  `json:"decls,omitempty" vim:"decls,omitempty"`
+	Func    *Func   `json:"func,omitempty" vim:"fn,omitempty"`
 }
 
 // Query specifies a single query to the parser
@@ -98,6 +107,30 @@ func (p *Parser) Run(query *Query) (*Result, error) {
 		return &Result{
 			Mode:  query.Mode,
 			Decls: decls,
+		}, nil
+	case "comment":
+		var comment *Comment
+		for _, c := range p.file.Comments {
+			if int(c.Pos()) <= query.Offset+1 && int(c.End()) >= query.Offset {
+				start := p.fset.Position(c.Pos())
+				end := p.fset.Position(c.End())
+				comment = &Comment{
+					StartLine: start.Line,
+					StartCol:  start.Column,
+					EndLine:   end.Line,
+					EndCol:    end.Column,
+				}
+				break
+			}
+		}
+
+		if comment == nil {
+			return nil, errors.New("no comment block at cursor position")
+		}
+
+		return &Result{
+			Comment: *comment,
+			Mode:    query.Mode,
 		}, nil
 	default:
 		return nil, fmt.Errorf("wrong mode %q passed", query.Mode)

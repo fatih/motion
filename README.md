@@ -3,7 +3,7 @@
 Motion is a tool that was designed to work with editors. It is providing
 contextual information for a given offset(option) from a file or directory of
 files.  Editors can use these informations to implement navigation, text
-editing, etc... that are specific to a Go source code. 
+editing, etc... that are specific to a Go source code.
 
 It's optimized and created to work with
 [vim-go](https://github.com/fatih/vim-go), but it's designed to work with any
@@ -25,6 +25,7 @@ modes you can use:
   offset
 * `next`: returns the next function information for a given offset
 * `prev`: returns the previous function information for a given offset
+* `comment`: returns information about the a comment block (if any).
 
 A `function information` is currently the following type definition (defined as
 `astcontext.Func`):
@@ -46,7 +47,7 @@ type Func struct {
 }
 ```
 
-`motion` can output the information currently in formats: `json` and `vim`. 
+`motion` can output the information currently in formats: `json` and `vim`.
 
 An example execution for the `enclosing` mode and output in `json` format is:
 
@@ -174,7 +175,7 @@ $ motion -file testdata/main.go -offset 330 -mode next --format json
 }
 ```
 
-Lastly for the mode `decls`, we pass the file (you can also pass a directory)
+For the mode `decls`, we pass the file (you can also pass a directory)
 and instruct to only include function declarations with the `-include func`
 flag:
 ```
@@ -207,5 +208,20 @@ $ motion -file testdata/main.go -mode decls -include func
 			"col": 1
 		}
 	]
+}
+```
+
+In the `comment` mode it will try to get information about the comment block for
+a given offset:
+```
+$ motion -mode comment -file ./vim/vim.go -offset 3
+{
+        "mode": "comment",
+        "comment": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 3,
+                "endCol": 50
+        }
 }
 ```
