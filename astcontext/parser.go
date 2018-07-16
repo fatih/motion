@@ -5,6 +5,8 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/ioutil"
+	"path/filepath"
 )
 
 // ParserOptions defines the options that changes the Parser's behavior
@@ -20,6 +22,9 @@ type ParserOptions struct {
 
 	// If enabled parses the comments too
 	Comments bool
+
+	// If using Dir, this parses all dirs recussively
+	Recursive bool
 }
 
 // Parser defines the customized parser
@@ -52,7 +57,11 @@ func NewParser(opts *ParserOptions) (*Parser, error) {
 			return nil, err
 		}
 	case opts.Dir != "":
-		p.pkgs, err = parser.ParseDir(fset, opts.Dir, nil, mode)
+		if opts.Recursive {
+			p.pkgs, err = parseRecursively(fset, opts.Dir, mode)
+		} else {
+			p.pkgs, err = parser.ParseDir(fset, opts.Dir, nil, mode)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -66,4 +75,31 @@ func NewParser(opts *ParserOptions) (*Parser, error) {
 	}
 
 	return p, nil
+}
+
+func parseRecursively(fset *token.FileSet, dir string, mode parser.Mode) (map[string]*ast.Package, error) {
+	r, err := parser.ParseDir(fset, dir, nil, mode)
+	if err != nil {
+		return map[string]*ast.Package{}, err
+	}
+
+	fileInfos, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return map[string]*ast.Package{}, err
+	}
+
+	for _, finfo := range fileInfos {
+		if finfo.IsDir() {
+			rs, err := parseRecursively(fset, filepath.Join(dir, finfo.Name()), mode)
+			if err != nil {
+				return map[string]*ast.Package{}, err
+			}
+
+			for k, v := range rs {
+				r[filepath.Join(dir, k)] = v
+			}
+		}
+	}
+
+	return r, nil
 }

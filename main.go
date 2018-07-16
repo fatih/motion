@@ -32,6 +32,8 @@ func realMain() error {
 		flagFormat        = flag.String("format", "json", "Output format. One of {json, vim}")
 		flagParseComments = flag.Bool("parse-comments", false,
 			"Parse comments and add them to AST")
+		flagRecursive = flag.Bool("recursive", false,
+			"Parse directories recursively. Only works with -dir")
 	)
 
 	flag.Parse()
@@ -49,9 +51,10 @@ func realMain() error {
 	}
 
 	opts := &astcontext.ParserOptions{
-		Comments: *flagParseComments,
-		File:     *flagFile,
-		Dir:      *flagDir,
+		Comments:  *flagParseComments,
+		File:      *flagFile,
+		Dir:       *flagDir,
+		Recursive: *flagRecursive,
 	}
 
 	parser, err := astcontext.NewParser(opts)
