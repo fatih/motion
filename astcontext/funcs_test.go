@@ -124,6 +124,9 @@ func (q *qaz) example(x,y,z int) error {
 	_ = func(foo int) error {
 		return nil
 	}
+	_ = func() (err error) {
+		return nil
+	}
 }
 
 func example() {}
@@ -131,6 +134,14 @@ func example() {}
 func variadic(x ...string) {}
 
 func bar(x int) error {
+	return nil
+}
+
+func namedSingleOut() (err error) {
+	return nil
+}
+
+func namedMultipleOut() (err error, res string) {
 	return nil
 }`
 
@@ -143,9 +154,12 @@ func bar(x int) error {
 		{want: "func()"},
 		{want: "func (q *qaz) example(x, y, z int) error"},
 		{want: "func(foo int) error"},
+		{want: "func() (err error)"},
 		{want: "func example()"},
 		{want: "func variadic(x ...string)"},
 		{want: "func bar(x int) error"},
+		{want: "func namedSingleOut() (err error)"},
+		{want: "func namedMultipleOut() (err error, res string)"},
 	}
 
 	opts := &ParserOptions{

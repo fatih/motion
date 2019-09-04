@@ -69,28 +69,32 @@ func (f *Func) IsLiteral() bool {
 // be of type *ast.FuncDecl or *ast.FuncLit
 func NewFuncSignature(node ast.Node) *FuncSignature {
 	getParams := func(list []*ast.Field) string {
-		out := ""
+		var named bool
+		buf := new(bytes.Buffer)
 		for i, p := range list {
 			for j, n := range p.Names {
-				out += n.Name
+				buf.WriteString(n.Name)
 				if len(p.Names) != j+1 {
-					out += ", "
+					buf.WriteString(", ")
 				}
 			}
 
 			if len(p.Names) != 0 {
-				out += " "
+				named = true
+				buf.WriteString(" ")
 			}
 
-			buf := new(bytes.Buffer)
 			types.WriteExpr(buf, p.Type)
-			out += buf.String()
 
 			if len(list) != i+1 {
-				out += ", "
+				named = true
+				buf.WriteString(", ")
 			}
 		}
-		return out
+		if named {
+			return fmt.Sprintf("(%s)", buf.String())
+		}
+		return buf.String()
 	}
 
 	switch x := node.(type) {
@@ -99,14 +103,11 @@ func NewFuncSignature(node ast.Node) *FuncSignature {
 			Name: x.Name.Name,
 		}
 
-		multiOutput := false
-
 		if x.Type.Params != nil {
 			sig.In = getParams(x.Type.Params.List)
 		}
 		if x.Type.Results != nil {
 			sig.Out = getParams(x.Type.Results.List)
-			multiOutput = len(x.Type.Results.List) > 1
 		}
 		if x.Recv != nil {
 			sig.Recv = getParams(x.Recv.List)
@@ -115,23 +116,19 @@ func NewFuncSignature(node ast.Node) *FuncSignature {
 		full := "func "
 
 		if sig.Recv != "" {
-			full += fmt.Sprintf("(%s) ", sig.Recv)
+			full += fmt.Sprintf("%s ", sig.Recv)
 		}
 
 		full += fmt.Sprintf("%s", sig.Name)
 
-		full += "("
 		if sig.In != "" {
 			full += fmt.Sprintf("%s", sig.In)
+		} else {
+			full += "()"
 		}
-		full += ")"
 
 		if sig.Out != "" {
-			if multiOutput {
-				full += fmt.Sprintf(" (%s)", sig.Out)
-			} else {
-				full += fmt.Sprintf(" %s", sig.Out)
-			}
+			full += fmt.Sprintf(" %s", sig.Out)
 		}
 
 		sig.Full = full
@@ -139,30 +136,23 @@ func NewFuncSignature(node ast.Node) *FuncSignature {
 	case *ast.FuncLit:
 		sig := &FuncSignature{}
 
-		multiOutput := false
-
 		if x.Type.Params != nil {
 			sig.In = getParams(x.Type.Params.List)
 		}
 		if x.Type.Results != nil {
 			sig.Out = getParams(x.Type.Results.List)
-			multiOutput = len(x.Type.Results.List) > 1
 		}
 
 		full := "func"
 
-		full += "("
 		if sig.In != "" {
 			full += fmt.Sprintf("%s", sig.In)
+		} else {
+			full += "()"
 		}
-		full += ")"
 
 		if sig.Out != "" {
-			if multiOutput {
-				full += fmt.Sprintf(" (%s)", sig.Out)
-			} else {
-				full += fmt.Sprintf(" %s", sig.Out)
-			}
+			full += fmt.Sprintf(" %s", sig.Out)
 		}
 
 		sig.Full = full
