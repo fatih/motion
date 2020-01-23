@@ -124,6 +124,9 @@ func (q *qaz) example(x,y,z int) error {
 	_ = func(foo int) error {
 		return nil
 	}
+	_ = func() (err error) {
+		return nil
+	}
 }
 
 func example() {}
@@ -131,6 +134,14 @@ func example() {}
 func variadic(x ...string) {}
 
 func bar(x int) error {
+	return nil
+}
+
+func namedSingleOut() (err error) {
+	return nil
+}
+
+func namedMultipleOut() (err error, res string) {
 	return nil
 }`
 
@@ -143,9 +154,12 @@ func bar(x int) error {
 		{want: "func()"},
 		{want: "func (q *qaz) example(x, y, z int) error"},
 		{want: "func(foo int) error"},
+		{want: "func() (err error)"},
 		{want: "func example()"},
 		{want: "func variadic(x ...string)"},
 		{want: "func bar(x int) error"},
+		{want: "func namedSingleOut() (err error)"},
+		{want: "func namedMultipleOut() (err error, res string)"},
 	}
 
 	opts := &ParserOptions{
@@ -167,21 +181,8 @@ func bar(x int) error {
 	}
 }
 
-func TestFunc_Signature_Named_Results(t *testing.T) {
+func TestFunc_Signature_Extra(t *testing.T) {
 	var src = `package main
-
-func namedSingleResult() (err error) {
-	return nil
-}
-
-func namedMultipleResult() (res string, err error) {
-	return "", nil
-}
-
-func sameTypeMultipleResult() (a, b int) {
-	return 0, 0
-}
-
 type s struct {}
 func (a s) valueReceiver() {}
 func (s) valueReceiver2() {}
@@ -190,9 +191,6 @@ func (s) valueReceiver2() {}
 	testFuncs := []struct {
 		want string
 	}{
-		{want: "func namedSingleResult() (err error)"},
-		{want: "func namedMultipleResult() (res string, err error)"},
-		{want: "func sameTypeMultipleResult() (a, b int)"},
 		{want: "func (a s) valueReceiver()"},
 		{want: "func (s) valueReceiver2()"},
 	}
