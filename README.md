@@ -1,4 +1,4 @@
-# Motion ![](https://github.com/fatih/motion/workflows/Go/badge.svg)
+# Motion [![](https://github.com/fatih/motion/workflows/build/badge.svg)](https://github.com/fatih/motion/actions)
 
 Motion is a tool that was designed to work with editors. It is providing
 contextual information for a given offset(option) from a file or directory of
