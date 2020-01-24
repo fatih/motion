@@ -69,7 +69,6 @@ func (f *Func) IsLiteral() bool {
 // be of type *ast.FuncDecl or *ast.FuncLit
 func NewFuncSignature(node ast.Node) *FuncSignature {
 	getParams := func(list []*ast.Field) string {
-		var named bool
 		buf := new(bytes.Buffer)
 		for i, p := range list {
 			for j, n := range p.Names {
@@ -80,21 +79,22 @@ func NewFuncSignature(node ast.Node) *FuncSignature {
 			}
 
 			if len(p.Names) != 0 {
-				named = true
 				buf.WriteString(" ")
 			}
 
 			types.WriteExpr(buf, p.Type)
 
 			if len(list) != i+1 {
-				named = true
 				buf.WriteString(", ")
 			}
 		}
-		if named {
-			return fmt.Sprintf("(%s)", buf.String())
-		}
 		return buf.String()
+	}
+	isResultsNeedParens := func(list []*ast.Field) bool {
+		if len(list) > 1 {
+			return true
+		}
+		return len(list) != 0 && len(list[0].Names) != 0
 	}
 
 	switch x := node.(type) {
@@ -103,59 +103,50 @@ func NewFuncSignature(node ast.Node) *FuncSignature {
 			Name: x.Name.Name,
 		}
 
-		if x.Type.Params != nil {
-			sig.In = getParams(x.Type.Params.List)
-		}
-		if x.Type.Results != nil {
-			sig.Out = getParams(x.Type.Results.List)
-		}
+		buf := bytes.NewBufferString("func ")
+
 		if x.Recv != nil {
 			sig.Recv = getParams(x.Recv.List)
+			fmt.Fprintf(buf, "(%s) ", sig.Recv)
 		}
 
-		full := "func "
+		fmt.Fprintf(buf, "%s", sig.Name)
 
-		if sig.Recv != "" {
-			full += fmt.Sprintf("%s ", sig.Recv)
+		if x.Type.Params != nil {
+			sig.In = getParams(x.Type.Params.List)
+			fmt.Fprintf(buf, "(%s)", sig.In)
 		}
 
-		full += fmt.Sprintf("%s", sig.Name)
-
-		if sig.In != "" {
-			full += fmt.Sprintf("%s", sig.In)
-		} else {
-			full += "()"
+		if x.Type.Results != nil {
+			sig.Out = getParams(x.Type.Results.List)
+			if isResultsNeedParens(x.Type.Results.List) {
+				fmt.Fprintf(buf, " (%s)", sig.Out)
+			} else {
+				fmt.Fprintf(buf, " %s", sig.Out)
+			}
 		}
 
-		if sig.Out != "" {
-			full += fmt.Sprintf(" %s", sig.Out)
-		}
-
-		sig.Full = full
+		sig.Full = buf.String()
 		return sig
 	case *ast.FuncLit:
 		sig := &FuncSignature{}
 
+		buf := bytes.NewBufferString("func")
+
 		if x.Type.Params != nil {
 			sig.In = getParams(x.Type.Params.List)
+			fmt.Fprintf(buf, "(%s)", sig.In)
 		}
 		if x.Type.Results != nil {
 			sig.Out = getParams(x.Type.Results.List)
+			if isResultsNeedParens(x.Type.Results.List) {
+				fmt.Fprintf(buf, " (%s)", sig.Out)
+			} else {
+				fmt.Fprintf(buf, " %s", sig.Out)
+			}
 		}
 
-		full := "func"
-
-		if sig.In != "" {
-			full += fmt.Sprintf("%s", sig.In)
-		} else {
-			full += "()"
-		}
-
-		if sig.Out != "" {
-			full += fmt.Sprintf(" %s", sig.Out)
-		}
-
-		sig.Full = full
+		sig.Full = buf.String()
 		return sig
 	default:
 		return &FuncSignature{Full: "UNKNOWN"}
