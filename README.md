@@ -1,4 +1,4 @@
-# Motion [![Build Status](http://img.shields.io/travis/fatih/motion.svg?style=flat-square)](https://travis-ci.org/fatih/motion)
+# Motion ![](https://github.com/fatih/motion/workflows/Go/badge.svg)
 
 Motion is a tool that was designed to work with editors. It is providing
 contextual information for a given offset(option) from a file or directory of
