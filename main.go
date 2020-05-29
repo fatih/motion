@@ -5,7 +5,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"go/build"
+	"go/token"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/fatih/motion/astcontext"
@@ -13,6 +17,7 @@ import (
 )
 
 func main() {
+	dirsInit()
 	if err := realMain(); err != nil {
 		fmt.Fprint(os.Stderr, err.Error())
 		os.Exit(1)
@@ -46,6 +51,10 @@ func realMain() error {
 
 	if *flagMode == "comment" {
 		*flagParseComments = true
+	}
+
+	if flagDir != nil {
+		*flagDir = findDir(*flagDir)
 	}
 
 	opts := &astcontext.ParserOptions{
@@ -97,4 +106,87 @@ func realMain() error {
 	}
 
 	return nil
+}
+
+func findDir(arg string) string {
+	wd, err := os.Getwd()
+	if err != nil {
+		return arg
+	}
+	if isDotSlash(arg) {
+		arg = filepath.Join(wd, arg)
+	}
+	if filepath.IsAbs(arg) {
+		return arg
+	} else {
+		pkg, importErr := build.Import(arg, wd, build.FindOnly)
+		if importErr == nil {
+			return pkg.Dir
+		}
+	}
+	for {
+		path, ok := findNextPackage(arg)
+		if !ok {
+			break
+		}
+		if _, err = build.ImportDir(path, build.FindOnly); err == nil {
+			return path
+		}
+	}
+
+	return arg
+}
+
+// dotPaths lists all the dotted paths legal on Unix-like and
+// Windows-like file systems. We check them all, as the chance
+// of error is minute and even on Windows people will use ./
+// sometimes.
+var dotPaths = []string{
+	`./`,
+	`../`,
+	`.\`,
+	`..\`,
+}
+
+// isDotSlash reports whether the path begins with a reference
+// to the local . or .. directory.
+func isDotSlash(arg string) bool {
+	if arg == "." || arg == ".." {
+		return true
+	}
+	for _, dotPath := range dotPaths {
+		if strings.HasPrefix(arg, dotPath) {
+			return true
+		}
+	}
+	return false
+}
+
+// findNextPackage returns the next full file name path that matches the
+// (perhaps partial) package path pkg. The boolean reports if any match was found.
+func findNextPackage(pkg string) (string, bool) {
+	if filepath.IsAbs(pkg) {
+		return "", false
+	}
+	if pkg == "" || token.IsExported(pkg) { // Upper case symbol cannot be a package name.
+		return "", false
+	}
+	pkg = path.Clean(pkg)
+	pkgSuffix := "/" + pkg
+	for {
+		d, ok := dirs.Next()
+		if !ok {
+			return "", false
+		}
+		if d.importPath == pkg || strings.HasSuffix(d.importPath, pkgSuffix) {
+			return d.dir, true
+		}
+	}
+}
+
+var buildCtx = build.Default
+
+// splitGopath splits $GOPATH into a list of roots.
+func splitGopath() []string {
+	return filepath.SplitList(buildCtx.GOPATH)
 }
