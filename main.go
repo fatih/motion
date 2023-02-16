@@ -14,7 +14,7 @@ import (
 
 func main() {
 	if err := realMain(); err != nil {
-		fmt.Fprint(os.Stderr, err.Error())
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		os.Exit(1)
 	}
 }
@@ -83,17 +83,17 @@ func realMain() error {
 	case "json":
 		b, err := json.MarshalIndent(&res, "", "\t")
 		if err != nil {
-			return fmt.Errorf("JSON error: %s\n", err)
+			return fmt.Errorf("JSON error: %s", err)
 		}
 		os.Stdout.Write(b)
 	case "vim":
 		b, err := vim.Marshal(&res)
 		if err != nil {
-			return fmt.Errorf("VIM error: %s\n", err)
+			return fmt.Errorf("VIM error: %s", err)
 		}
 		os.Stdout.Write(b)
 	default:
-		return fmt.Errorf("wrong -format value: %q.\n", *flagFormat)
+		return fmt.Errorf("wrong -format value: %q", *flagFormat)
 	}
 
 	return nil
